@@ -1,0 +1,1681 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lyrical VJ Studio 歌词VJ生成器</title>
+  <style>
+    :root {
+      --bg: #0b0c10;
+      --panel: #15161d;
+      --panel-2: #1f212b;
+      --accent: #00d2ff;
+      --accent-2: #ff2a6d;
+      --text: #e6e6e6;
+      --text-dim: #8b8d98;
+      --border: #2a2d3a;
+      --success: #00e5a0;
+      --warning: #ffcc00;
+      --danger: #ff4d6d;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0;
+      width: 100%; height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+      overflow: hidden;
+    }
+    button, input, select, textarea {
+      font-family: inherit;
+      color: var(--text);
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      outline: none;
+    }
+    button { cursor: pointer; transition: all .15s ease; }
+    button:hover { border-color: var(--accent); }
+    button.primary { background: linear-gradient(135deg, var(--accent), #0099cc); border: none; }
+    button.primary:hover { filter: brightness(1.1); }
+    button.danger { background: var(--danger); border: none; }
+    input, select, textarea { padding: 8px 10px; }
+    input[type="file"] { padding: 4px; }
+    label { display: block; font-size: 12px; color: var(--text-dim); margin: 10px 0 4px; }
+    .app { display: flex; flex-direction: column; height: 100vh; }
+    .topbar {
+      height: 52px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 16px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+    }
+    .topbar .title { font-size: 16px; font-weight: 700; letter-spacing: .5px; }
+    .topbar .title span { color: var(--accent); }
+    .topbar .actions { display: flex; gap: 10px; align-items: center; }
+    .mode-switch {
+      display: flex; gap: 2px;
+      background: var(--panel-2); border-radius: 6px; padding: 2px;
+    }
+    .mode-switch button {
+      background: transparent; border: none; padding: 6px 12px; font-size: 12px;
+    }
+    .mode-switch button.active { background: var(--accent); color: #000; font-weight: 700; }
+    .main { display: flex; flex: 1; min-height: 0; }
+    .sidebar {
+      width: 300px;
+      background: var(--panel);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    .tabs {
+      display: flex; border-bottom: 1px solid var(--border);
+    }
+    .tabs button {
+      flex: 1; background: transparent; border: none; padding: 10px 0; font-size: 12px; color: var(--text-dim);
+    }
+    .tabs button.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
+    .panel-content { flex: 1; overflow-y: auto; padding: 12px; }
+    .section { margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+    .section-title { font-size: 13px; font-weight: 700; margin-bottom: 10px; color: var(--accent); }
+    .row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+    .row > * { flex: 1; }
+    .hint { font-size: 11px; color: var(--text-dim); line-height: 1.5; }
+    .workspace { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .preview-wrap {
+      flex: 1;
+      display: flex; align-items: center; justify-content: center;
+      background: #050505;
+      position: relative;
+      overflow: hidden;
+    }
+    #mainCanvas {
+      background: #000;
+      box-shadow: 0 0 40px rgba(0,0,0,.6);
+      max-width: 100%; max-height: 100%;
+    }
+    .transport {
+      height: 56px;
+      background: var(--panel);
+      border-top: 1px solid var(--border);
+      display: flex; align-items: center; gap: 12px;
+      padding: 0 16px;
+    }
+    .transport button { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; }
+    .transport input[type="range"] { flex: 1; }
+    .time-display { font-variant-numeric: tabular-nums; font-size: 13px; min-width: 90px; text-align: center; }
+    .timeline-area {
+      height: 160px;
+      background: var(--panel-2);
+      border-top: 1px solid var(--border);
+      display: flex; flex-direction: column;
+    }
+    .timeline-toolbar {
+      height: 32px; display: flex; align-items: center; gap: 8px;
+      padding: 0 10px; border-bottom: 1px solid var(--border);
+    }
+    .timeline-toolbar button { padding: 2px 8px; font-size: 11px; }
+    #timelineContainer {
+      flex: 1; position: relative; overflow: auto; cursor: grab;
+      background: repeating-linear-gradient(90deg, transparent, transparent 99px, var(--border) 99px, var(--border) 100px);
+    }
+    #timelineContainer:active { cursor: grabbing; }
+    #timelineTrack {
+      position: relative; height: 100%; min-width: 100%;
+    }
+    .lyric-block {
+      position: absolute;
+      top: 50%; transform: translateY(-50%);
+      height: 60px;
+      background: rgba(0,210,255,.15);
+      border: 1px solid rgba(0,210,255,.4);
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 11px;
+      display: flex; align-items: center;
+      overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+      cursor: move; user-select: none;
+    }
+    .lyric-block.selected { background: rgba(255,42,109,.25); border-color: var(--accent-2); }
+    .lyric-block .handle {
+      position: absolute; top: 0; bottom: 0; width: 6px; cursor: ew-resize;
+    }
+    .lyric-block .handle.left { left: 0; }
+    .lyric-block .handle.right { right: 0; }
+    .playhead {
+      position: absolute; top: 0; bottom: 0; width: 2px; background: var(--accent-2);
+      pointer-events: none; z-index: 10;
+    }
+    .time-ruler {
+      position: absolute; top: 0; left: 0; right: 0; height: 18px;
+      border-bottom: 1px solid var(--border);
+      pointer-events: none;
+    }
+    .time-label {
+      position: absolute; top: 2px; font-size: 10px; color: var(--text-dim);
+      transform: translateX(-50%);
+    }
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.7);
+      display: none; align-items: center; justify-content: center; z-index: 100;
+    }
+    .modal { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; width: 420px; max-width: 90%; padding: 20px; }
+    .modal h3 { margin: 0 0 12px; font-size: 15px; }
+    .modal .row { margin-bottom: 12px; }
+    .progress-wrap { margin-top: 12px; }
+    progress { width: 100%; height: 8px; border-radius: 4px; }
+    .toast {
+      position: fixed; bottom: 20px; right: 20px;
+      background: var(--panel-2); border: 1px solid var(--border);
+      padding: 10px 16px; border-radius: 8px;
+      transform: translateY(20px); opacity: 0; pointer-events: none;
+      transition: all .25s ease; z-index: 200;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .hidden { display: none !important; }
+    .flex { display: flex; }
+    .gap4 { gap: 4px; }
+    .w-full { width: 100%; }
+    .mt-2 { margin-top: 8px; }
+    textarea.lyrics-input { width: 100%; height: 160px; resize: vertical; font-size: 12px; }
+    .file-name { font-size: 11px; color: var(--text-dim); word-break: break-all; }
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-top: 8px;
+      transition: all .2s ease;
+      cursor: pointer;
+    }
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: var(--accent);
+      background: rgba(0,210,255,.05);
+      color: var(--accent);
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div class="title"><span>Lyrical</span> VJ Studio</div>
+    <div class="actions">
+      <div class="mode-switch">
+        <button id="modeDemo" class="active">演示模式</button>
+        <button id="modeFull">完整工作</button>
+      </div>
+      <button id="btnExport" class="primary">导出视频</button>
+    </div>
+  </div>
+  <div class="main">
+    <aside class="sidebar">
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="audio">音频</button>
+        <button class="tab-btn" data-tab="lyrics">歌词</button>
+        <button class="tab-btn" data-tab="style">样式</button>
+      </div>
+      <div class="panel-content">
+        <!-- Audio Tab -->
+        <div id="tab-audio" class="tab-panel">
+          <div class="section">
+            <div class="section-title">音源</div>
+            <input type="file" id="audioFile" accept="audio/*" />
+            <div class="file-name" id="audioFileName">未选择文件</div>
+            <button id="btnDemo" class="primary w-full mt-2">生成 Demo 音频</button>
+          </div>
+          <div class="section">
+            <div class="section-title">离线一键导入（网易云/QQ音乐）</div>
+            <div class="hint">同时选择音频文件和同名 .lrc 歌词文件，自动配对导入。MP3 内嵌歌词也会自动提取。</div>
+            <input type="file" id="pairFile" multiple accept="audio/*,.lrc,.txt" />
+            <div class="file-name" id="pairFileName">支持 MP3 + LRC 配对，或直接拖到下方区域</div>
+            <div id="dropZone" class="drop-zone">拖放音频 + LRC 到这里</div>
+            <button id="btnExtractEmbedded" class="w-full mt-2">从当前 MP3 提取内嵌歌词</button>
+          </div>
+          <div class="section" id="apiSection" style="display:none;">
+            <div class="section-title">语音识别</div>
+            <label>API Endpoint</label>
+            <input type="text" id="apiEndpoint" value="https://api.openai.com/v1/audio/transcriptions" />
+            <label>API Key</label>
+            <input type="password" id="apiKey" placeholder="sk-..." />
+            <label>模型</label>
+            <input type="text" id="apiModel" value="whisper-1" />
+            <div class="hint">需要支持返回 word-level timestamps 的 Whisper 兼容服务。</div>
+            <button id="btnTranscribe" class="primary w-full mt-2">开始识别</button>
+          </div>
+        </div>
+        <!-- Lyrics Tab -->
+        <div id="tab-lyrics" class="tab-panel hidden">
+          <div class="section">
+            <div class="section-title">编辑歌词</div>
+            <label>支持 LRC 格式或纯文本（纯文本将按行均分）</label>
+            <textarea id="lyricsInput" class="lyrics-input" placeholder="[00:00.00]第一行歌词\n[00:03.50]第二行歌词"></textarea>
+            <div class="row mt-2">
+              <button id="btnParseLrc" class="primary">解析并应用</button>
+              <button id="btnAutoAlign">自动对齐音频</button>
+              <button id="btnLoadDemoLyrics">加载示例</button>
+            </div>
+            <label>对齐敏感度（节拍越密集越高）</label>
+            <input type="range" id="alignSensitivity" min="10" max="90" value="35" />
+            <div class="hint">粘贴网易云/QQ音乐歌词文本后，点此按钮会根据音频节拍自动匹配时间轴。已带 LRC 时间戳的歌词无需使用。</div>
+          </div>
+          <div class="section">
+            <div class="section-title">导入/导出</div>
+            <div class="row">
+              <button id="btnImportJson">导入 JSON</button>
+              <button id="btnExportJson">导出 JSON</button>
+            </div>
+            <input type="file" id="jsonFile" accept="application/json" class="hidden" />
+          </div>
+          <div class="section">
+            <div class="section-title">当前歌词</div>
+            <div id="lyricsList" class="hint">暂无歌词</div>
+          </div>
+        </div>
+        <!-- Style Tab -->
+        <div id="tab-style" class="tab-panel hidden">
+          <div class="section">
+            <div class="section-title">画面</div>
+            <label>画面比例</label>
+            <select id="aspectRatio">
+              <option value="16:9">16:9 舞台大屏</option>
+              <option value="4:3">4:3</option>
+              <option value="9:16">9:16 竖屏</option>
+              <option value="1:1">1:1</option>
+            </select>
+            <label>背景主题</label>
+            <select id="bgTheme">
+              <option value="gradient">渐变流动</option>
+              <option value="particles">频谱粒子</option>
+              <option value="grid">几何脉冲</option>
+              <option value="stars">星空闪烁</option>
+              <option value="solid">纯色暗角</option>
+            </select>
+            <label>背景色</label>
+            <input type="color" id="bgColor" value="#0b0c10" />
+          </div>
+          <div class="section">
+            <div class="section-title">歌词文字</div>
+            <label>字体</label>
+            <select id="fontFamily">
+              <option value="PingFang SC, Microsoft YaHei, sans-serif">系统黑体</option>
+              <option value="Arial, sans-serif">Arial</option>
+              <option value="Georgia, serif">Georgia</option>
+              <option value="Courier New, monospace">Monospace</option>
+            </select>
+            <label>字号</label>
+            <input type="range" id="fontSize" min="30" max="160" value="72" />
+            <label>文字颜色</label>
+            <input type="color" id="textColor" value="#ffffff" />
+            <label>高亮颜色</label>
+            <input type="color" id="highlightColor" value="#00d2ff" />
+            <label>描边颜色</label>
+            <input type="color" id="strokeColor" value="#000000" />
+            <label>描边宽度</label>
+            <input type="range" id="strokeWidth" min="0" max="20" value="6" />
+            <label>阴影模糊</label>
+            <input type="range" id="shadowBlur" min="0" max="40" value="10" />
+          </div>
+          <div class="section">
+            <div class="section-title">动画</div>
+            <label>入场动画</label>
+            <select id="animIn">
+              <option value="fade">淡入</option>
+              <option value="slideUp">上滑</option>
+              <option value="slideDown">下滑</option>
+              <option value="scale">缩放</option>
+            </select>
+            <label>停留效果</label>
+            <select id="animHold">
+              <option value="none">无</option>
+              <option value="pulse">轻微脉冲</option>
+              <option value="bounce">弹跳</option>
+            </select>
+            <label>退场动画</label>
+            <select id="animOut">
+              <option value="fade">淡出</option>
+              <option value="slideUp">上滑</option>
+              <option value="slideDown">下滑</option>
+              <option value="scale">缩放</option>
+            </select>
+            <label>动画强度</label>
+            <input type="range" id="animIntensity" min="0" max="100" value="50" />
+          </div>
+        </div>
+      </div>
+    </aside>
+    <div class="workspace">
+      <div class="preview-wrap">
+        <canvas id="mainCanvas" width="1280" height="720"></canvas>
+      </div>
+      <div class="transport">
+        <button id="btnPlay">▶</button>
+        <button id="btnStop">⏹</button>
+        <span class="time-display" id="timeDisplay">00:00.00 / 00:00.00</span>
+        <input type="range" id="seekBar" min="0" max="100" value="0" step="0.01" />
+        <button id="btnLoop">🔁</button>
+      </div>
+      <div class="timeline-area">
+        <div class="timeline-toolbar">
+          <button id="btnZoomOut">-</button>
+          <span class="hint" id="zoomLabel">100 px/s</span>
+          <button id="btnZoomIn">+</button>
+          <button id="btnAddLyric">+ 歌词</button>
+          <button id="btnDeleteLyric" class="danger">删除选中</button>
+          <span class="hint">拖拽调整时间，边缘拖拽调整时长</span>
+        </div>
+        <div id="timelineContainer">
+          <div id="timelineTrack">
+            <div class="time-ruler" id="timeRuler"></div>
+            <div class="playhead" id="playhead"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Export Modal -->
+<div class="modal-overlay" id="exportModal">
+  <div class="modal">
+    <h3>导出视频</h3>
+    <div class="row">
+      <div>
+        <label>分辨率</label>
+        <select id="exportResolution">
+          <option value="1280x720">1280x720 (HD)</option>
+          <option value="1920x1080">1920x1080 (FHD)</option>
+          <option value="960x540">960x540</option>
+        </select>
+      </div>
+      <div>
+        <label>帧率</label>
+        <select id="exportFps">
+          <option value="24">24 fps</option>
+          <option value="30" selected>30 fps</option>
+          <option value="60">60 fps</option>
+        </select>
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>格式</label>
+        <select id="exportFormat"></select>
+      </div>
+      <div>
+        <label>码率 (Mbps)</label>
+        <input type="number" id="exportBitrate" value="8" min="1" max="50" step="1" />
+      </div>
+    </div>
+    <div class="progress-wrap hidden" id="exportProgressWrap">
+      <progress id="exportProgress" value="0" max="100"></progress>
+      <div class="hint" id="exportStatus">准备中...</div>
+    </div>
+    <div class="row mt-2">
+      <button id="btnCancelExport">取消</button>
+      <button id="btnStartExport" class="primary">开始导出</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="importJsonFile" accept="application/json" class="hidden" />
+<div class="toast" id="toast"></div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ===================== STATE =====================
+  const state = {
+    mode: 'demo', // 'demo' | 'full'
+    audioUrl: null,
+    audioDuration: 0,
+    currentTime: 0,
+    isPlaying: false,
+    loop: false,
+    lyrics: [],
+    selectedLyricId: null,
+    zoom: 100, // pixels per second
+    canvasSize: { width: 1280, height: 720 },
+    aspectRatio: '16:9',
+    style: {
+      bgTheme: 'gradient',
+      bgColor: '#0b0c10',
+      fontFamily: 'PingFang SC, Microsoft YaHei, sans-serif',
+      fontSize: 72,
+      textColor: '#ffffff',
+      highlightColor: '#00d2ff',
+      strokeColor: '#000000',
+      strokeWidth: 6,
+      shadowBlur: 10,
+      animIn: 'fade',
+      animHold: 'pulse',
+      animOut: 'fade',
+      animIntensity: 0.5
+    },
+    isExporting: false
+  };
+
+  let dragState = null; // { lyric, mode, side, startX, startStart, startEnd }
+
+  const DEMO_LYRICS = [
+    { id: 'l1', text: '欢迎来到 Lyrical VJ Studio', start: 1.0, end: 3.5 },
+    { id: 'l2', text: '这是一个浏览器内的歌词视频生成器', start: 4.0, end: 7.0 },
+    { id: 'l3', text: '上传音频，识别歌词，编辑时间轴', start: 7.5, end: 10.5 },
+    { id: 'l4', text: '选择动态背景，自定义字体动画', start: 11.0, end: 14.0 },
+    { id: 'l5', text: '最后导出视频，用于现场 VJ', start: 14.5, end: 17.5 },
+    { id: 'l6', text: '让每一场演出都有视觉记忆', start: 18.0, end: 21.0 }
+  ];
+
+  // ===================== DOM REFS =====================
+  const canvas = document.getElementById('mainCanvas');
+  const ctx = canvas.getContext('2d');
+  const audioEl = new Audio();
+  audioEl.crossOrigin = 'anonymous';
+  let audioCtx = null;
+  let analyser = null;
+  let sourceNode = null;
+  let freqData = null;
+
+  const els = {
+    modeDemo: document.getElementById('modeDemo'),
+    modeFull: document.getElementById('modeFull'),
+    btnExport: document.getElementById('btnExport'),
+    audioFile: document.getElementById('audioFile'),
+    audioFileName: document.getElementById('audioFileName'),
+    btnDemo: document.getElementById('btnDemo'),
+    pairFile: document.getElementById('pairFile'),
+    pairFileName: document.getElementById('pairFileName'),
+    dropZone: document.getElementById('dropZone'),
+    btnExtractEmbedded: document.getElementById('btnExtractEmbedded'),
+    apiSection: document.getElementById('apiSection'),
+    apiEndpoint: document.getElementById('apiEndpoint'),
+    apiKey: document.getElementById('apiKey'),
+    apiModel: document.getElementById('apiModel'),
+    btnTranscribe: document.getElementById('btnTranscribe'),
+    lyricsInput: document.getElementById('lyricsInput'),
+    btnParseLrc: document.getElementById('btnParseLrc'),
+    btnAutoAlign: document.getElementById('btnAutoAlign'),
+    alignSensitivity: document.getElementById('alignSensitivity'),
+    btnLoadDemoLyrics: document.getElementById('btnLoadDemoLyrics'),
+    lyricsList: document.getElementById('lyricsList'),
+    btnImportJson: document.getElementById('btnImportJson'),
+    btnExportJson: document.getElementById('btnExportJson'),
+    importJsonFile: document.getElementById('importJsonFile'),
+    aspectRatio: document.getElementById('aspectRatio'),
+    bgTheme: document.getElementById('bgTheme'),
+    bgColor: document.getElementById('bgColor'),
+    fontFamily: document.getElementById('fontFamily'),
+    fontSize: document.getElementById('fontSize'),
+    textColor: document.getElementById('textColor'),
+    highlightColor: document.getElementById('highlightColor'),
+    strokeColor: document.getElementById('strokeColor'),
+    strokeWidth: document.getElementById('strokeWidth'),
+    shadowBlur: document.getElementById('shadowBlur'),
+    animIn: document.getElementById('animIn'),
+    animHold: document.getElementById('animHold'),
+    animOut: document.getElementById('animOut'),
+    animIntensity: document.getElementById('animIntensity'),
+    btnPlay: document.getElementById('btnPlay'),
+    btnStop: document.getElementById('btnStop'),
+    btnLoop: document.getElementById('btnLoop'),
+    timeDisplay: document.getElementById('timeDisplay'),
+    seekBar: document.getElementById('seekBar'),
+    timelineContainer: document.getElementById('timelineContainer'),
+    timelineTrack: document.getElementById('timelineTrack'),
+    timeRuler: document.getElementById('timeRuler'),
+    playhead: document.getElementById('playhead'),
+    btnZoomOut: document.getElementById('btnZoomOut'),
+    btnZoomIn: document.getElementById('btnZoomIn'),
+    zoomLabel: document.getElementById('zoomLabel'),
+    btnAddLyric: document.getElementById('btnAddLyric'),
+    btnDeleteLyric: document.getElementById('btnDeleteLyric'),
+    exportModal: document.getElementById('exportModal'),
+    exportResolution: document.getElementById('exportResolution'),
+    exportFps: document.getElementById('exportFps'),
+    exportFormat: document.getElementById('exportFormat'),
+    exportBitrate: document.getElementById('exportBitrate'),
+    exportProgressWrap: document.getElementById('exportProgressWrap'),
+    exportProgress: document.getElementById('exportProgress'),
+    exportStatus: document.getElementById('exportStatus'),
+    btnCancelExport: document.getElementById('btnCancelExport'),
+    btnStartExport: document.getElementById('btnStartExport'),
+    toast: document.getElementById('toast'),
+    tabBtns: document.querySelectorAll('.tab-btn'),
+    tabPanels: document.querySelectorAll('.tab-panel')
+  };
+
+  // ===================== UTILS =====================
+  function uid() { return Math.random().toString(36).slice(2) + Date.now().toString(36); }
+  function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+  function formatTime(s) {
+    if (!isFinite(s) || s < 0) s = 0;
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    const ms = Math.floor((s % 1) * 100);
+    return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}.${String(ms).padStart(2,'0')}`;
+  }
+  function parseLrc(text) {
+    const lines = text.split(/\r?\n/);
+    const out = [];
+    // Standard LRC: [mm:ss.xx]text   OR   inline word-level: [00:01.00]字[00:01.20]字
+    const tagRe = /\[(\d+):(\d+(?:\.\d+)?)\]/g;
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      // Skip metadata tags
+      if (/^\[[a-z]+:/i.test(line.trim())) continue;
+      // Find all timestamps on this line
+      tagRe.lastIndex = 0;
+      const stamps = [];
+      let m;
+      while ((m = tagRe.exec(line)) !== null) {
+        stamps.push({ t: parseInt(m[1],10) * 60 + parseFloat(m[2]), idx: m.index, end: m.index + m[0].length });
+      }
+      if (!stamps.length) {
+        // Plain text line, no timestamp
+        const cleaned = line.trim();
+        if (cleaned) out.push({ id: uid(), text: cleaned, start: 0, end: 0 });
+        continue;
+      }
+      // Multiple timestamps on one line = inline word-level LRC (NetEase style)
+      if (stamps.length > 1) {
+        for (let i = 0; i < stamps.length; i++) {
+          const s = stamps[i];
+          const textStart = s.end;
+          const textEnd = i + 1 < stamps.length ? stamps[i+1].idx : line.length;
+          const word = line.slice(textStart, textEnd).trim();
+          if (word) out.push({ id: uid(), text: word, start: s.t, end: s.t + 0.5 });
+        }
+      } else {
+        // Standard single-timestamp LRC line
+        const text = line.slice(stamps[0].end).trim();
+        if (text) out.push({ id: uid(), text, start: stamps[0].t, end: stamps[0].t + 3 });
+      }
+    }
+    // Merge consecutive word-level entries into lines
+    const merged = mergeWordLevelLines(out);
+    // Sort and auto-fill end times
+    merged.sort((a,b) => a.start - b.start);
+    for (let i = 0; i < merged.length; i++) {
+      if (i + 1 < merged.length) merged[i].end = Math.max(merged[i].end, merged[i+1].start);
+      else if (state.audioDuration) merged[i].end = Math.max(merged[i].end, state.audioDuration);
+    }
+    return merged;
+  }
+  function mergeWordLevelLines(entries) {
+    // If entries are very short (word-level), merge ones with very small gaps into lines
+    if (entries.length <= 1) return entries;
+    const avgLen = entries.reduce((s,e) => s + e.text.length, 0) / entries.length;
+    if (avgLen > 6) return entries; // already line-level
+    const merged = [];
+    let cur = null;
+    const gapThreshold = 1.2; // seconds between starts = new line
+    for (const e of entries) {
+      if (!cur || e.start - cur.start > gapThreshold) {
+        if (cur) merged.push(cur);
+        cur = { id: uid(), text: e.text, start: e.start, end: e.end };
+      } else {
+        cur.text += e.text;
+        cur.end = e.end;
+      }
+    }
+    if (cur) merged.push(cur);
+    return merged;
+  }
+  function parseId3Lyrics(arrayBuffer) {
+    // Extract USLT (Unsynchronized) or SYLT (Synchronized) lyrics from ID3v2
+    const view = new DataView(arrayBuffer);
+    if (view.byteLength < 10) return null;
+    // Check ID3v2 header
+    if (view.getUint8(0) !== 0x49 || view.getUint8(1) !== 0x44 || view.getUint8(2) !== 0x33) return null;
+    const version = view.getUint8(3);
+    const flags = view.getUint8(5);
+    let headerSize = 10;
+    // Calculate synchsafe size
+    const size = ((view.getUint8(6) & 0x7f) << 21) |
+                 ((view.getUint8(7) & 0x7f) << 14) |
+                 ((view.getUint8(8) & 0x7f) << 7) |
+                 (view.getUint8(9) & 0x7f);
+    const tagEnd = Math.min(headerSize + size, view.byteLength);
+    // Extended header?
+    if (flags & 0x40) {
+      const extSize = ((view.getUint8(10) & 0x7f) << 21) |
+                      ((view.getUint8(11) & 0x7f) << 14) |
+                      ((view.getUint8(12) & 0x7f) << 7) |
+                      (view.getUint8(13) & 0x7f);
+      headerSize += extSize + 4;
+    }
+    let offset = headerSize;
+    let lyricsText = null;
+    while (offset + 10 < tagEnd) {
+      let frameId, frameSize, frameFlags;
+      if (version >= 3) {
+        frameId = String.fromCharCode(view.getUint8(offset), view.getUint8(offset+1), view.getUint8(offset+2), view.getUint8(offset+3));
+        if (version === 4) {
+          frameSize = ((view.getUint8(offset+4) & 0x7f) << 21) |
+                      ((view.getUint8(offset+5) & 0x7f) << 14) |
+                      ((view.getUint8(offset+6) & 0x7f) << 7) |
+                      (view.getUint8(offset+7) & 0x7f);
+        } else {
+          frameSize = view.getUint32(offset + 4);
+        }
+        frameFlags = view.getUint16(offset + 8);
+        offset += 10;
+      } else {
+        // ID3v2.2
+        frameId = String.fromCharCode(view.getUint8(offset), view.getUint8(offset+1), view.getUint8(offset+2));
+        frameSize = (view.getUint8(offset+3) << 16) | (view.getUint8(offset+4) << 8) | view.getUint8(offset+5);
+        frameFlags = 0;
+        offset += 6;
+      }
+      if (frameSize <= 0 || offset + frameSize > tagEnd) break;
+      // USLT = Unsynchronized lyrics, SYLT = Synchronized lyrics
+      if (frameId === 'USLT' || frameId === 'ULT') {
+        lyricsText = extractUsltFrame(view, offset, frameSize);
+        break;
+      }
+      if (frameId === 'SYLT' || frameId === 'SLT') {
+        lyricsText = extractSyltFrame(view, offset, frameSize);
+        break;
+      }
+      offset += frameSize;
+    }
+    return lyricsText;
+  }
+  function extractUsltFrame(view, offset, size) {
+    // USLT: encoding(1) + language(3) + content descriptor + lyrics
+    const enc = view.getUint8(offset);
+    const textStart = offset + 4;
+    // skip content descriptor (null-terminated)
+    let descEnd = textStart;
+    if (enc === 0 || enc === 3) {
+      while (descEnd < offset + size && view.getUint8(descEnd) !== 0) descEnd++;
+      descEnd++;
+    } else {
+      while (descEnd + 1 < offset + size && !(view.getUint8(descEnd) === 0 && view.getUint8(descEnd+1) === 0)) descEnd += 2;
+      descEnd += 2;
+    }
+    const lyricsBytes = new Uint8Array(view.buffer, descEnd, offset + size - descEnd);
+    return decodeText(lyricsBytes, enc);
+  }
+  function extractSyltFrame(view, offset, size) {
+    // SYLT: encoding(1) + language(3) + time format(1) + content type(1) + descriptor + [text\0timestamp]*
+    const enc = view.getUint8(offset);
+    let pos = offset + 6;
+    // skip descriptor
+    if (enc === 0 || enc === 3) {
+      while (pos < offset + size && view.getUint8(pos) !== 0) pos++;
+      pos++;
+    } else {
+      while (pos + 1 < offset + size && !(view.getUint8(pos) === 0 && view.getUint8(pos+1) === 0)) pos += 2;
+      pos += 2;
+    }
+    // Build LRC text from synchronized fragments
+    let lrc = '';
+    while (pos + 4 < offset + size) {
+      let textEnd = pos;
+      if (enc === 0 || enc === 3) {
+        while (textEnd < offset + size && view.getUint8(textEnd) !== 0) textEnd++;
+      } else {
+        while (textEnd + 1 < offset + size && !(view.getUint8(textEnd) === 0 && view.getUint8(textEnd+1) === 0)) textEnd += 2;
+      }
+      const fragBytes = new Uint8Array(view.buffer, pos, textEnd - pos);
+      const frag = decodeText(fragBytes, enc);
+      const ts = view.getUint32(textEnd + (enc === 1 || enc === 2 ? 2 : 1));
+      const min = Math.floor(ts / 60000);
+      const sec = ((ts % 60000) / 1000).toFixed(2).padStart(5, '0');
+      lrc += `[${String(min).padStart(2,'0')}:${sec}]${frag}\n`;
+      pos = textEnd + (enc === 1 || enc === 2 ? 2 : 1) + 4;
+    }
+    return lrc || null;
+  }
+  function decodeText(bytes, enc) {
+    try {
+      if (enc === 0) return new TextDecoder('iso-8859-1').decode(bytes);
+      if (enc === 1) {
+        // UTF-16 with BOM
+        if (bytes.length >= 2 && bytes[0] === 0xFF && bytes[1] === 0xFE) return new TextDecoder('utf-16le').decode(bytes.slice(2));
+        if (bytes.length >= 2 && bytes[0] === 0xFE && bytes[1] === 0xFF) return new TextDecoder('utf-16be').decode(bytes.slice(2));
+        return new TextDecoder('utf-16le').decode(bytes);
+      }
+      if (enc === 2) return new TextDecoder('utf-16be').decode(bytes);
+      return new TextDecoder('utf-8').decode(bytes);
+    } catch(e) {
+      return new TextDecoder('utf-8').decode(bytes);
+    }
+  }
+  async function extractEmbeddedLyrics() {
+    if (!audioEl.src) { toast('请先加载 MP3 音频'); return; }
+    toast('正在提取内嵌歌词...');
+    try {
+      const ab = await fetch(audioEl.src).then(r => r.arrayBuffer());
+      const lyrics = parseId3Lyrics(ab);
+      if (!lyrics) { toast('该音频未内嵌歌词'); return; }
+      els.lyricsInput.value = lyrics;
+      state.lyrics = parseLrc(lyrics);
+      updateLyricsInput();
+      renderTimeline();
+      toast(`已提取 ${state.lyrics.length} 行内嵌歌词`);
+    } catch(err) {
+      console.error(err);
+      toast('提取失败：' + err.message);
+    }
+  }
+  async function handlePairImport(files) {
+    let audioFile = null, lrcFile = null;
+    for (const f of files) {
+      if (f.type.startsWith('audio/') || /\.(mp3|wav|ogg|m4a|flac|aac)$/i.test(f.name)) audioFile = f;
+      else if (/\.lrc$/i.test(f.name)) lrcFile = f;
+      else if (/\.txt$/i.test(f.name) && !lrcFile) lrcFile = f;
+    }
+    if (!audioFile) { toast('请至少选择一个音频文件'); return; }
+    // Load audio
+    const url = URL.createObjectURL(audioFile);
+    setAudioUrl(url, audioFile.name);
+    setMode('full');
+    // Wait for metadata
+    await new Promise(resolve => {
+      const check = () => { if (state.audioDuration > 0) resolve(); else setTimeout(check, 100); };
+      setTimeout(() => resolve(), 3000);
+      check();
+    });
+    let lrcText = null;
+    if (lrcFile) {
+      lrcText = await lrcFile.text();
+    } else {
+      // Try to extract from MP3 ID3
+      const ab = await audioFile.arrayBuffer();
+      lrcText = parseId3Lyrics(ab);
+    }
+    if (lrcText) {
+      els.lyricsInput.value = lrcText;
+      state.lyrics = parseLrc(lrcText);
+      updateLyricsInput();
+      renderTimeline();
+      toast(`导入完成：${state.lyrics.length} 行歌词`);
+    } else {
+      toast('音频已加载，未找到歌词。请拖入 .lrc 文件或使用自动对齐');
+    }
+    els.pairFileName.textContent = `已导入：${audioFile.name}${lrcFile ? ' + ' + lrcFile.name : ''}`;
+  }
+  function toast(msg) {
+    els.toast.textContent = msg;
+    els.toast.classList.add('show');
+    setTimeout(() => els.toast.classList.remove('show'), 2500);
+  }
+
+  // ===================== AUTO ALIGN (NetEase/QQ Music lyrics) =====================
+  function cleanPlatformLyrics(text) {
+    const raw = text.split(/\r?\n/);
+    const out = [];
+    const metaRe = /^\[[a-z]+:.+\]$/i;
+    const infoRe = /^(作词|作曲|编曲|制作人|混音|母带|监制|和声|录音|统筹|出品|发行|OP|SP|LRC|歌词来源|歌词翻译|曲|词|编)\s*[：:]/i;
+    for (const line of raw) {
+      const t = line.trim();
+      if (!t) continue;
+      if (metaRe.test(t)) continue;
+      if (infoRe.test(t)) continue;
+      // strip traditional LRC tag if mixed
+      const lrcRe = /^\[\d+:\d+(?:\.\d+)?\]\s*/;
+      const cleaned = t.replace(lrcRe, '').trim();
+      if (cleaned) out.push(cleaned);
+    }
+    return out;
+  }
+  function detectVocalOnsets(audioBuffer, sensitivity) {
+    // Mono mix
+    const sr = audioBuffer.sampleRate;
+    const duration = audioBuffer.duration;
+    const ch = audioBuffer.numberOfChannels;
+    const len = audioBuffer.length;
+    const mono = new Float32Array(len);
+    for (let c = 0; c < ch; c++) {
+      const d = audioBuffer.getChannelData(c);
+      for (let i = 0; i < len; i++) mono[i] += d[i];
+    }
+    for (let i = 0; i < len; i++) mono[i] /= ch;
+
+    const frameSize = Math.floor(sr * 0.02); // 20ms
+    const hop = Math.floor(frameSize / 2);
+    const frames = Math.floor((len - frameSize) / hop);
+    const energy = new Float32Array(frames);
+    let maxE = 0;
+    for (let f = 0; f < frames; f++) {
+      let sum = 0;
+      for (let i = 0; i < frameSize; i++) {
+        const s = mono[f * hop + i];
+        sum += s * s;
+      }
+      energy[f] = sum / frameSize;
+      if (energy[f] > maxE) maxE = energy[f];
+    }
+    if (maxE < 1e-10) return [];
+
+    // spectral flux-ish: positive difference between log energies
+    const flux = new Float32Array(frames);
+    for (let i = 1; i < frames; i++) {
+      const diff = Math.log(energy[i] / maxE + 1e-12) - Math.log(energy[i-1] / maxE + 1e-12);
+      flux[i] = Math.max(0, diff);
+    }
+
+    // threshold from sensitivity (10-90)
+    const thresholdRatio = 1 - (sensitivity / 100); // high sensitivity -> low threshold
+    const gate = 0.02 + thresholdRatio * 0.25; // 0.02 ~ 0.27 of max flux
+    const silenceGate = 0.01 + thresholdRatio * 0.08; // relative energy gate
+
+    const onsets = [];
+    const minGapSec = Math.max(0.3, 1.5 - sensitivity / 60); // 0.3 ~ 1.0s
+    const minGapFrames = Math.floor(minGapSec * sr / hop);
+    let lastOnset = -minGapFrames;
+    for (let i = 2; i < frames - 2; i++) {
+      const localMax = flux[i] > flux[i-1] && flux[i] > flux[i-2] && flux[i] > flux[i+1] && flux[i] > flux[i+2];
+      const loud = energy[i] / maxE > silenceGate;
+      const strong = flux[i] > gate * Math.max(...flux.slice(Math.max(0,i-10), Math.min(frames,i+10)));
+      if (localMax && loud && strong && i - lastOnset > minGapFrames) {
+        onsets.push((i * hop) / sr);
+        lastOnset = i;
+      }
+    }
+    return onsets;
+  }
+  function autoAlignLyrics(lines, onsets, duration) {
+    if (!lines.length) return [];
+    const result = lines.map((text, idx) => ({ id: uid(), text, start: 0, end: 0 }));
+    if (!onsets.length) {
+      // Even distribution fallback
+      const gap = duration / Math.max(1, lines.length);
+      result.forEach((l, i) => { l.start = i * gap; l.end = (i + 1) * gap; });
+      return result;
+    }
+    // Match each line to a unique onset using DP-ish greedy
+    let onsetIdx = 0;
+    const minLineDur = 1.2;
+    for (let i = 0; i < result.length; i++) {
+      const target = (i / Math.max(1, result.length - 1)) * duration * 0.95;
+      // find nearest onset not too early
+      while (onsetIdx < onsets.length - 1 && Math.abs(onsets[onsetIdx + 1] - target) < Math.abs(onsets[onsetIdx] - target)) {
+        onsetIdx++;
+      }
+      result[i].start = clamp(onsets[onsetIdx], 0, duration - 0.5);
+      onsetIdx = Math.min(onsetIdx + 1, onsets.length - 1);
+    }
+    // Fill end times
+    for (let i = 0; i < result.length; i++) {
+      if (i + 1 < result.length) {
+        result[i].end = Math.max(result[i].start + minLineDur, result[i+1].start);
+      } else {
+        result[i].end = Math.max(result[i].start + minLineDur, duration);
+      }
+    }
+    return result;
+  }
+  async function autoAlign() {
+    if (!audioEl.src) { toast('请先加载音频'); return; }
+    const rawText = els.lyricsInput.value;
+    const lines = cleanPlatformLyrics(rawText);
+    if (!lines.length) { toast('未找到有效歌词，请粘贴网易云/QQ音乐歌词文本'); return; }
+    toast('正在分析音频节拍，请稍候...');
+    try {
+      initAudioContext();
+      const blob = await fetch(audioEl.src).then(r => r.blob());
+      const ab = await blob.arrayBuffer();
+      const audioBuffer = await audioCtx.decodeAudioData(ab);
+      const duration = audioBuffer.duration;
+      state.audioDuration = duration;
+      const sensitivity = parseFloat(els.alignSensitivity.value);
+      const onsets = detectVocalOnsets(audioBuffer, sensitivity);
+      state.lyrics = autoAlignLyrics(lines, onsets, duration);
+      updateLyricsInput();
+      renderTimeline();
+      updateTimeDisplay();
+      toast(`自动对齐完成，检测到 ${onsets.length} 个节拍点，匹配 ${state.lyrics.length} 行歌词`);
+    } catch (err) {
+      console.error(err);
+      toast('对齐失败：' + err.message);
+    }
+  }
+
+  // ===================== AUDIO ENGINE =====================
+  function initAudioContext() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 256;
+      freqData = new Uint8Array(analyser.frequencyBinCount);
+    }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  }
+  function connectAudioSource() {
+    initAudioContext();
+    if (sourceNode) return; // can only create once per audio element
+    try {
+      sourceNode = audioCtx.createMediaElementSource(audioEl);
+      sourceNode.connect(analyser);
+      analyser.connect(audioCtx.destination);
+    } catch(e) {
+      console.warn('audio source connect failed', e);
+    }
+  }
+  function loadAudioFromFile(file) {
+    const url = URL.createObjectURL(file);
+    setAudioUrl(url, file.name);
+  }
+  function setAudioUrl(url, name) {
+    state.audioUrl = url;
+    audioEl.src = url;
+    els.audioFileName.textContent = name || '自定义音频';
+    audioEl.load();
+    audioEl.onloadedmetadata = () => {
+      state.audioDuration = audioEl.duration || 0;
+      els.seekBar.max = state.audioDuration;
+      updateTimeDisplay();
+      renderTimeline();
+    };
+    connectAudioSource();
+  }
+  function generateDemoAudio() {
+    initAudioContext();
+    const duration = 24;
+    const sampleRate = audioCtx.sampleRate;
+    const offline = new OfflineAudioContext(2, sampleRate * duration, sampleRate);
+    const t0 = offline.currentTime;
+    const tempo = 0.5; // beat every 0.5s
+    for (let t = 0; t < duration; t += tempo) {
+      const osc = offline.createOscillator();
+      const gain = offline.createGain();
+      osc.type = t % 1.0 < 0.01 ? 'square' : 'sine';
+      osc.frequency.value = t % 1.0 < 0.01 ? 220 : 110;
+      osc.connect(gain);
+      gain.connect(offline.destination);
+      const bt = t0 + t;
+      gain.gain.setValueAtTime(0.25, bt);
+      gain.gain.exponentialRampToValueAtTime(0.001, bt + 0.15);
+      osc.start(bt);
+      osc.stop(bt + 0.2);
+    }
+    // Add a pad chord
+    const padOsc = offline.createOscillator();
+    const padGain = offline.createGain();
+    padOsc.type = 'triangle';
+    padOsc.frequency.value = 146.83;
+    padOsc.connect(padGain);
+    padGain.connect(offline.destination);
+    padGain.gain.setValueAtTime(0.08, t0);
+    padGain.gain.linearRampToValueAtTime(0, t0 + duration);
+    padOsc.start(t0);
+    padOsc.stop(t0 + duration);
+    offline.startRendering().then(buffer => {
+      const wav = audioBufferToWav(buffer);
+      const blob = new Blob([wav], { type: 'audio/wav' });
+      const url = URL.createObjectURL(blob);
+      setAudioUrl(url, 'Demo Beat.wav');
+      state.lyrics = JSON.parse(JSON.stringify(DEMO_LYRICS));
+      updateLyricsInput();
+      renderTimeline();
+      toast('Demo 音频已生成');
+    });
+  }
+  function audioBufferToWav(buffer) {
+    const numOfChan = buffer.numberOfChannels,
+      length = buffer.length * numOfChan * 2 + 44,
+      ab = new ArrayBuffer(length),
+      view = new DataView(ab),
+      sampleRate = buffer.sampleRate;
+    let offset = 0;
+    function writeString(str) { for (let i=0;i<str.length;i++) view.setUint8(offset++, str.charCodeAt(i)); }
+    writeString('RIFF'); view.setUint32(offset, 36 + buffer.length * numOfChan * 2, true); offset += 4;
+    writeString('WAVE'); writeString('fmt '); offset += 4;
+    view.setUint32(offset, 16, true); offset += 4;
+    view.setUint16(offset, 1, true); offset += 2;
+    view.setUint16(offset, numOfChan, true); offset += 2;
+    view.setUint32(offset, sampleRate, true); offset += 4;
+    view.setUint32(offset, sampleRate * 2 * numOfChan, true); offset += 4;
+    view.setUint16(offset, numOfChan * 2, true); offset += 2;
+    view.setUint16(offset, 16, true); offset += 2;
+    writeString('data'); view.setUint32(offset, buffer.length * numOfChan * 2, true); offset += 4;
+    const channels = [];
+    for (let i=0;i<numOfChan;i++) channels.push(buffer.getChannelData(i));
+    for (let i=0;i<buffer.length;i++) {
+      for (let c=0;c<numOfChan;c++) {
+        let s = Math.max(-1, Math.min(1, channels[c][i]));
+        s = s < 0 ? s * 0x8000 : s * 0x7FFF;
+        view.setInt16(offset, s, true); offset += 2;
+      }
+    }
+    return ab;
+  }
+
+  // ===================== RENDERER =====================
+  function resizeCanvas() {
+    const ratios = { '16:9': [1280,720], '4:3': [1280,960], '9:16': [720,1280], '1:1': [960,960] };
+    const [w,h] = ratios[state.aspectRatio] || ratios['16:9'];
+    state.canvasSize = { width:w, height:h };
+    canvas.width = w; canvas.height = h;
+  }
+  function getFrequencyData() {
+    if (analyser && freqData) {
+      try { analyser.getByteFrequencyData(freqData); return freqData; } catch(e){}
+    }
+    return null;
+  }
+  function getAudioEnergy() {
+    const data = getFrequencyData();
+    if (!data) return 0.3 + 0.1 * Math.sin(Date.now()/300);
+    let sum = 0; for (let i=0;i<data.length;i++) sum += data[i];
+    return sum / (data.length * 255);
+  }
+  function renderFrame(time) {
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0,0,w,h);
+    drawBackground(time, w, h);
+    drawLyrics(time, w, h);
+  }
+  function drawBackground(time, w, h) {
+    const theme = state.style.bgTheme;
+    const baseColor = state.style.bgColor;
+    const energy = getAudioEnergy();
+    ctx.save();
+    if (theme === 'solid') {
+      ctx.fillStyle = baseColor;
+      ctx.fillRect(0,0,w,h);
+      const grad = ctx.createRadialGradient(w/2,h/2,0,w/2,h/2,Math.max(w,h)/1.2);
+      grad.addColorStop(0, 'rgba(0,0,0,0)');
+      grad.addColorStop(1, 'rgba(0,0,0,.6)');
+      ctx.fillStyle = grad; ctx.fillRect(0,0,w,h);
+    } else if (theme === 'gradient') {
+      const hue = (time * 8) % 360;
+      const g = ctx.createLinearGradient(0,0,w,h);
+      g.addColorStop(0, `hsl(${hue}, 70%, 15%)`);
+      g.addColorStop(0.5, baseColor);
+      g.addColorStop(1, `hsl(${(hue+60)%360}, 70%, 20%)`);
+      ctx.fillStyle = g; ctx.fillRect(0,0,w,h);
+    } else if (theme === 'particles') {
+      ctx.fillStyle = baseColor; ctx.fillRect(0,0,w,h);
+      const count = 60;
+      for (let i=0;i<count;i++) {
+        const t = (time + i * 0.13) % 1;
+        const x = (Math.sin(i * 2.3 + time * 0.5) * 0.5 + 0.5) * w;
+        const y = h - t * h;
+        const r = 2 + energy * 10 + (i % 5);
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI*2);
+        ctx.fillStyle = `hsla(${(i*7 + time*30)%360}, 80%, 60%, ${1-t})`;
+        ctx.fill();
+      }
+    } else if (theme === 'grid') {
+      ctx.fillStyle = baseColor; ctx.fillRect(0,0,w,h);
+      const cols = 12, rows = 8;
+      const cw = w/cols, rh = h/rows;
+      const beat = Math.sin(time * Math.PI * 2);
+      for (let i=0;i<cols;i++) {
+        for (let j=0;j<rows;j++) {
+          const dist = Math.hypot(i-cols/2, j-rows/2);
+          const s = 0.6 + (energy + beat * 0.2) * (1 - dist/Math.max(cols,rows));
+          const x = i*cw + cw/2, y = j*rh + rh/2;
+          ctx.fillStyle = `hsla(${(dist*30 + time*40)%360}, 70%, 50%, .4)`;
+          ctx.fillRect(x - cw*s/2, y - rh*s/2, cw*s, rh*s);
+        }
+      }
+    } else if (theme === 'stars') {
+      ctx.fillStyle = baseColor; ctx.fillRect(0,0,w,h);
+      for (let i=0;i<80;i++) {
+        const twinkle = Math.sin(time * 3 + i * 1.7) * 0.5 + 0.5;
+        const x = (Math.sin(i * 1.1) * 0.5 + 0.5) * w;
+        const y = (Math.cos(i * 1.7) * 0.5 + 0.5) * h;
+        const r = 1 + twinkle * 2;
+        ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
+        ctx.fillStyle = `rgba(255,255,255,${0.2 + twinkle*0.8})`;
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+  function drawLyrics(time, w, h) {
+    const active = state.lyrics.filter(l => time >= l.start - 0.5 && time <= l.end + 0.5);
+    // Keep only one or two active lines
+    active.sort((a,b) => a.start - b.start);
+    const line = active.find(l => time >= l.start && time < l.end) || active[0];
+    if (!line) return;
+    const progress = clamp((time - line.start) / Math.max(0.01, line.end - line.start), 0, 1);
+    const anim = computeLyricTransform(line, time, progress);
+    ctx.save();
+    ctx.translate(w/2 + anim.x, h/2 + anim.y);
+    ctx.scale(anim.scale, anim.scale);
+    ctx.globalAlpha = anim.alpha;
+    ctx.font = `bold ${state.style.fontSize}px ${state.style.fontFamily}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.lineJoin = 'round';
+    ctx.miterLimit = 2;
+    const lines = wrapText(line.text, w * 0.85, state.style.fontSize);
+    const lineHeight = state.style.fontSize * 1.25;
+    const totalH = lines.length * lineHeight;
+    const shadow = state.style.shadowBlur;
+    if (shadow > 0) {
+      ctx.shadowColor = 'rgba(0,0,0,.6)';
+      ctx.shadowBlur = shadow;
+      ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 4;
+    }
+    lines.forEach((txt, idx) => {
+      const y = (idx - (lines.length-1)/2) * lineHeight;
+      // stroke
+      const sw = state.style.strokeWidth;
+      if (sw > 0) {
+        ctx.strokeStyle = state.style.strokeColor;
+        ctx.lineWidth = sw;
+        ctx.strokeText(txt, 0, y);
+      }
+      // fill with karaoke highlight
+      const textW = ctx.measureText(txt).width;
+      const highlightW = textW * progress;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(-textW/2, y - lineHeight/2, highlightW, lineHeight);
+      ctx.clip();
+      ctx.fillStyle = state.style.highlightColor;
+      ctx.fillText(txt, 0, y);
+      ctx.restore();
+      ctx.fillStyle = state.style.textColor;
+      ctx.fillText(txt, 0, y);
+    });
+    ctx.restore();
+  }
+  function wrapText(text, maxWidth, fontSize) {
+    ctx.font = `bold ${fontSize}px ${state.style.fontFamily}`;
+    const words = text.split('');
+    const lines = [];
+    let cur = '';
+    for (const ch of words) {
+      const test = cur + ch;
+      if (ctx.measureText(test).width > maxWidth && cur) {
+        lines.push(cur);
+        cur = ch;
+      } else cur = test;
+    }
+    if (cur) lines.push(cur);
+    return lines.length ? lines : [text];
+  }
+  function computeLyricTransform(line, time, progress) {
+    const intensity = state.style.animIntensity;
+    const durIn = 0.4, durOut = 0.4;
+    const total = line.end - line.start;
+    const tIn = clamp((time - line.start) / durIn, 0, 1);
+    const tOut = clamp((line.end - time) / durOut, 0, 1);
+    const trans = { x: 0, y: 0, scale: 1, alpha: 1 };
+    const ease = t => t * (2 - t);
+    // alpha
+    trans.alpha = Math.min(ease(tIn), ease(tOut));
+    // position based on animIn
+    const inType = state.style.animIn;
+    if (inType === 'slideUp' && tIn < 1) trans.y = (1 - ease(tIn)) * 80 * intensity;
+    if (inType === 'slideDown' && tIn < 1) trans.y = -(1 - ease(tIn)) * 80 * intensity;
+    // animOut
+    const outType = state.style.animOut;
+    if (outType === 'slideUp' && tOut < 1) trans.y = -(1 - ease(tOut)) * 80 * intensity;
+    if (outType === 'slideDown' && tOut < 1) trans.y = (1 - ease(tOut)) * 80 * intensity;
+    // scale
+    if (inType === 'scale' && tIn < 1) trans.scale = 0.5 + 0.5 * ease(tIn);
+    if (outType === 'scale' && tOut < 1) trans.scale = 0.5 + 0.5 * ease(tOut);
+    // hold pulse/bounce
+    const hold = state.style.animHold;
+    if (hold === 'pulse') trans.scale *= 1 + 0.05 * Math.sin(time * 6) * intensity;
+    if (hold === 'bounce') trans.y += 10 * Math.sin(time * 12) * intensity * trans.alpha;
+    return trans;
+  }
+
+  // ===================== PLAYBACK LOOP =====================
+  let rafId = null;
+  function loop() {
+    if (state.isExporting) return;
+    if (audioEl.src) {
+      state.currentTime = audioEl.currentTime;
+      if (state.currentTime >= state.audioDuration - 0.02) {
+        if (state.loop) { audioEl.currentTime = 0; audioEl.play(); }
+        else { audioEl.pause(); state.isPlaying = false; updatePlayButton(); }
+      }
+    }
+    renderFrame(state.currentTime);
+    updateSeekBar();
+    updatePlayhead();
+    rafId = requestAnimationFrame(loop);
+  }
+
+  // ===================== UI UPDATES =====================
+  function updatePlayButton() {
+    els.btnPlay.textContent = state.isPlaying ? '⏸' : '▶';
+  }
+  function updateTimeDisplay() {
+    els.timeDisplay.textContent = `${formatTime(state.currentTime)} / ${formatTime(state.audioDuration)}`;
+  }
+  function updateSeekBar() {
+    els.seekBar.value = state.currentTime;
+    els.seekBar.max = state.audioDuration || 100;
+    updateTimeDisplay();
+  }
+  function updatePlayhead() {
+    els.playhead.style.left = `${state.currentTime * state.zoom}px`;
+    const container = els.timelineContainer;
+    const center = container.clientWidth / 2;
+    container.scrollLeft = state.currentTime * state.zoom - center;
+  }
+  function updateLyricsInput() {
+    els.lyricsInput.value = state.lyrics.map(l => `[${formatTime(l.start)}]${l.text}`).join('\n');
+    renderLyricsList();
+  }
+  function renderLyricsList() {
+    if (!state.lyrics.length) { els.lyricsList.textContent = '暂无歌词'; return; }
+    els.lyricsList.innerHTML = state.lyrics.map(l =>
+      `<div>${formatTime(l.start)} - ${l.text}</div>`
+    ).join('');
+  }
+
+  // ===================== TIMELINE =====================
+  function renderTimeline() {
+    // remove existing blocks
+    els.timelineTrack.querySelectorAll('.lyric-block').forEach(b => b.remove());
+    els.timeRuler.innerHTML = '';
+    const duration = Math.max(state.audioDuration || 30, 30);
+    els.timelineTrack.style.width = `${duration * state.zoom}px`;
+    // ruler
+    const step = Math.max(1, Math.floor(100 / state.zoom));
+    for (let t=0; t<=duration; t+=step) {
+      const label = document.createElement('div');
+      label.className = 'time-label';
+      label.style.left = `${t * state.zoom}px`;
+      label.textContent = formatTime(t);
+      els.timeRuler.appendChild(label);
+    }
+    // blocks
+    state.lyrics.forEach(l => {
+      const el = document.createElement('div');
+      el.className = 'lyric-block';
+      if (l.id === state.selectedLyricId) el.classList.add('selected');
+      el.style.left = `${l.start * state.zoom}px`;
+      el.style.width = `${Math.max(20, (l.end - l.start) * state.zoom)}px`;
+      el.textContent = l.text || '(空)';
+      el.dataset.id = l.id;
+      const hl = document.createElement('div'); hl.className = 'handle left'; el.appendChild(hl);
+      const hr = document.createElement('div'); hr.className = 'handle right'; el.appendChild(hr);
+      bindBlockEvents(el, l);
+      els.timelineTrack.appendChild(el);
+    });
+  }
+  function bindBlockEvents(el, lyric) {
+    el.addEventListener('mousedown', e => {
+      e.stopPropagation();
+      state.selectedLyricId = lyric.id;
+      renderTimeline();
+      const isHandle = e.target.classList.contains('handle');
+      dragState = {
+        lyric,
+        mode: isHandle ? 'resize' : 'drag',
+        side: isHandle ? (e.target.classList.contains('left') ? 'left' : 'right') : null,
+        startX: e.clientX,
+        startStart: lyric.start,
+        startEnd: lyric.end
+      };
+      document.body.style.cursor = isHandle ? 'ew-resize' : 'move';
+    });
+  }
+  window.addEventListener('mousemove', e => {
+    if (!dragState) return;
+    const { lyric, mode, side, startX, startStart, startEnd } = dragState;
+    const dx = (e.clientX - startX) / state.zoom;
+    if (mode === 'drag') {
+      const dur = startEnd - startStart;
+      lyric.start = clamp(startStart + dx, 0, Math.max(0, (state.audioDuration || 30) - dur));
+      lyric.end = lyric.start + dur;
+    } else if (mode === 'resize') {
+      if (side === 'left') {
+        lyric.start = clamp(startStart + dx, 0, lyric.end - 0.3);
+      } else {
+        lyric.end = clamp(startEnd + dx, lyric.start + 0.3, state.audioDuration || 30);
+      }
+    }
+    renderTimeline();
+    updateLyricsInput();
+  });
+  window.addEventListener('mouseup', () => {
+    if (dragState) { dragState = null; document.body.style.cursor = ''; }
+  });
+
+  // ===================== TRANSCRIBE =====================
+  async function transcribe() {
+    if (!audioEl.src) { toast('请先上传音频'); return; }
+    const key = els.apiKey.value.trim();
+    const endpoint = els.apiEndpoint.value.trim();
+    const model = els.apiModel.value.trim();
+    if (!key) { toast('请输入 API Key'); return; }
+    toast('正在识别，请稍候...');
+    try {
+      const blob = await fetch(audioEl.src).then(r => r.blob());
+      const form = new FormData();
+      form.append('file', blob, 'audio.wav');
+      form.append('model', model);
+      form.append('response_format', 'verbose_json');
+      form.append('timestamp_granularities[]', 'word');
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${key}` },
+        body: form
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const words = data.words || [];
+      if (!words.length) { toast('未识别到歌词'); return; }
+      // group words into lines of ~6 words
+      const lines = [];
+      let cur = [];
+      words.forEach(w => {
+        cur.push(w);
+        if (cur.length >= 6 || /[。！？.!?]$/.test(w.word)) {
+          lines.push(cur); cur = [];
+        }
+      });
+      if (cur.length) lines.push(cur);
+      state.lyrics = lines.map((group, i) => ({
+        id: uid(),
+        text: group.map(w => w.word).join(''),
+        start: group[0].start,
+        end: group[group.length-1].end
+      }));
+      updateLyricsInput();
+      renderTimeline();
+      toast(`识别完成，共 ${state.lyrics.length} 行`);
+    } catch(err) {
+      console.error(err);
+      toast('识别失败：' + err.message);
+    }
+  }
+
+  // ===================== EXPORT =====================
+  function getSupportedMimeTypes() {
+    const types = [
+      'video/webm;codecs=vp9',
+      'video/webm;codecs=vp8',
+      'video/webm',
+      'video/mp4;codecs=avc1.42E01E',
+      'video/mp4'
+    ];
+    return types.filter(t => MediaRecorder.isTypeSupported(t));
+  }
+  function populateExportFormats() {
+    const types = getSupportedMimeTypes();
+    els.exportFormat.innerHTML = types.map(t => `<option value="${t}">${t}</option>`).join('');
+    if (!types.length) els.exportFormat.innerHTML = '<option value="">浏览器不支持录制</option>';
+  }
+  function startExport() {
+    const mime = els.exportFormat.value;
+    if (!mime) { toast('当前浏览器不支持视频录制'); return; }
+    const [rw, rh] = els.exportResolution.value.split('x').map(Number);
+    const fps = parseInt(els.exportFps.value, 10);
+    const bps = parseFloat(els.exportBitrate.value) * 1e6;
+    // resize canvas temporarily
+    const oldW = canvas.width, oldH = canvas.height;
+    canvas.width = rw; canvas.height = rh;
+    state.isExporting = true;
+    audioEl.pause();
+    audioEl.currentTime = 0;
+    state.currentTime = 0;
+    updateSeekBar();
+    els.exportProgressWrap.classList.remove('hidden');
+    els.exportProgress.value = 0;
+    els.exportStatus.textContent = '录制中...';
+
+    const stream = canvas.captureStream(fps);
+    let audioDest = null;
+    if (audioCtx && sourceNode) {
+      audioDest = audioCtx.createMediaStreamDestination();
+      sourceNode.connect(audioDest);
+      stream.addTrack(audioDest.stream.getAudioTracks()[0]);
+    } else {
+      // try to capture audio element track
+      try {
+        const audioStream = audioEl.captureStream ? audioEl.captureStream() : null;
+        if (audioStream) audioStream.getAudioTracks().forEach(t => stream.addTrack(t));
+      } catch(e){}
+    }
+    const recorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: bps });
+    const chunks = [];
+    recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+    recorder.onstop = () => {
+      const blob = new Blob(chunks, { type: mime.split(';')[0] });
+      const ext = mime.includes('mp4') ? 'mp4' : 'webm';
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `lyrical-vj-export.${ext}`;
+      a.click();
+      state.isExporting = false;
+      canvas.width = oldW; canvas.height = oldH;
+      if (audioDest) sourceNode.disconnect(audioDest);
+      els.exportModal.style.display = 'none';
+      toast('导出完成');
+      loop();
+    };
+    recorder.onerror = e => {
+      state.isExporting = false;
+      console.error(e);
+      toast('导出出错');
+    };
+    recorder.start(100);
+    // drive playback and render
+    audioEl.play().then(() => {
+      const startT = performance.now();
+      const exportLoop = () => {
+        if (!state.isExporting) { recorder.stop(); return; }
+        state.currentTime = audioEl.currentTime;
+        renderFrame(state.currentTime);
+        const pct = Math.min(100, (state.currentTime / Math.max(0.1, state.audioDuration)) * 100);
+        els.exportProgress.value = pct;
+        els.exportStatus.textContent = `录制中 ${pct.toFixed(1)}%`;
+        if (state.currentTime >= state.audioDuration - 0.05) {
+          setTimeout(() => recorder.stop(), 200);
+          return;
+        }
+        requestAnimationFrame(exportLoop);
+      };
+      exportLoop();
+    }).catch(err => {
+      state.isExporting = false;
+      recorder.stop();
+      toast('播放失败：' + err.message);
+    });
+  }
+
+  // ===================== EVENT BINDING =====================
+  function bindEvents() {
+    // tabs
+    els.tabBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        els.tabBtns.forEach(b => b.classList.remove('active'));
+        els.tabPanels.forEach(p => p.classList.add('hidden'));
+        btn.classList.add('active');
+        document.getElementById('tab-' + btn.dataset.tab).classList.remove('hidden');
+      });
+    });
+    // mode switch
+    els.modeDemo.addEventListener('click', () => setMode('demo'));
+    els.modeFull.addEventListener('click', () => setMode('full'));
+    function setMode(m) {
+      state.mode = m;
+      els.modeDemo.classList.toggle('active', m === 'demo');
+      els.modeFull.classList.toggle('active', m === 'full');
+      els.apiSection.style.display = m === 'full' ? 'block' : 'none';
+    }
+    // audio
+    els.audioFile.addEventListener('change', e => {
+      const f = e.target.files[0]; if (f) { setMode('full'); loadAudioFromFile(f); }
+    });
+    els.btnDemo.addEventListener('click', () => { setMode('demo'); generateDemoAudio(); });
+    // pair import (audio + LRC)
+    els.pairFile.addEventListener('change', e => {
+      if (e.target.files.length) handlePairImport(Array.from(e.target.files));
+    });
+    els.btnExtractEmbedded.addEventListener('click', extractEmbeddedLyrics);
+    els.dropZone.addEventListener('click', () => els.pairFile.click());
+    els.dropZone.addEventListener('dragover', e => {
+      e.preventDefault(); els.dropZone.classList.add('dragover');
+    });
+    els.dropZone.addEventListener('dragleave', () => els.dropZone.classList.remove('dragover'));
+    els.dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      els.dropZone.classList.remove('dragover');
+      if (e.dataTransfer.files.length) handlePairImport(Array.from(e.dataTransfer.files));
+    });
+    // playback
+    els.btnPlay.addEventListener('click', () => {
+      initAudioContext();
+      if (!audioEl.src) { toast('请先加载音频'); return; }
+      if (state.isPlaying) { audioEl.pause(); state.isPlaying = false; }
+      else { audioEl.play(); state.isPlaying = true; }
+      updatePlayButton();
+    });
+    audioEl.addEventListener('play', () => { state.isPlaying = true; updatePlayButton(); });
+    audioEl.addEventListener('pause', () => { state.isPlaying = false; updatePlayButton(); });
+    els.btnStop.addEventListener('click', () => {
+      audioEl.pause(); audioEl.currentTime = 0; state.currentTime = 0; state.isPlaying = false; updatePlayButton();
+    });
+    els.btnLoop.addEventListener('click', () => {
+      state.loop = !state.loop;
+      els.btnLoop.style.color = state.loop ? 'var(--accent)' : '';
+    });
+    els.seekBar.addEventListener('input', () => {
+      audioEl.currentTime = parseFloat(els.seekBar.value);
+      state.currentTime = audioEl.currentTime;
+    });
+    // lyrics
+    els.btnParseLrc.addEventListener('click', () => {
+      state.lyrics = parseLrc(els.lyricsInput.value);
+      renderTimeline();
+      renderLyricsList();
+      toast('歌词已应用');
+    });
+    els.btnAutoAlign.addEventListener('click', autoAlign);
+    els.btnLoadDemoLyrics.addEventListener('click', () => {
+      state.lyrics = JSON.parse(JSON.stringify(DEMO_LYRICS));
+      updateLyricsInput();
+      renderTimeline();
+    });
+    els.btnImportJson.addEventListener('click', () => els.importJsonFile.click());
+    els.importJsonFile.addEventListener('change', e => {
+      const f = e.target.files[0]; if (!f) return;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        try {
+          const data = JSON.parse(ev.target.result);
+          if (data.lyrics) state.lyrics = data.lyrics;
+          if (data.style) Object.assign(state.style, data.style);
+          if (data.aspectRatio) state.aspectRatio = data.aspectRatio;
+          applyStyleToControls();
+          updateLyricsInput();
+          renderTimeline();
+          toast('导入成功');
+        } catch(err) { toast('JSON 解析失败'); }
+      };
+      reader.readAsText(f);
+    });
+    els.btnExportJson.addEventListener('click', () => {
+      const data = { lyrics: state.lyrics, style: state.style, aspectRatio: state.aspectRatio };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = 'lyrical-vj-project.json';
+      a.click();
+    });
+    // transcribe
+    els.btnTranscribe.addEventListener('click', transcribe);
+    // style controls
+    els.aspectRatio.addEventListener('change', () => {
+      state.aspectRatio = els.aspectRatio.value;
+      resizeCanvas();
+    });
+    [
+      ['bgTheme', 'bgTheme'], ['bgColor', 'bgColor'], ['fontFamily', 'fontFamily'],
+      ['fontSize', 'fontSize', 'number'], ['textColor', 'textColor'], ['highlightColor', 'highlightColor'],
+      ['strokeColor', 'strokeColor'], ['strokeWidth', 'strokeWidth', 'number'],
+      ['shadowBlur', 'shadowBlur', 'number'], ['animIn', 'animIn'], ['animHold', 'animHold'],
+      ['animOut', 'animOut'], ['animIntensity', 'animIntensity', 'number']
+    ].forEach(([id, key, type]) => {
+      els[id].addEventListener('input', () => {
+        state.style[key] = type === 'number' ? parseFloat(els[id].value) : els[id].value;
+        if (key === 'animIntensity') state.style[key] /= 100;
+      });
+    });
+    // timeline toolbar
+    els.btnZoomIn.addEventListener('click', () => { state.zoom = clamp(state.zoom * 1.2, 20, 800); els.zoomLabel.textContent = `${Math.round(state.zoom)} px/s`; renderTimeline(); });
+    els.btnZoomOut.addEventListener('click', () => { state.zoom = clamp(state.zoom / 1.2, 20, 800); els.zoomLabel.textContent = `${Math.round(state.zoom)} px/s`; renderTimeline(); });
+    els.btnAddLyric.addEventListener('click', () => {
+      const t = state.currentTime;
+      const l = { id: uid(), text: '新歌词', start: t, end: t + 2 };
+      state.lyrics.push(l);
+      state.lyrics.sort((a,b) => a.start - b.start);
+      state.selectedLyricId = l.id;
+      updateLyricsInput();
+      renderTimeline();
+    });
+    els.btnDeleteLyric.addEventListener('click', () => {
+      if (!state.selectedLyricId) return;
+      state.lyrics = state.lyrics.filter(l => l.id !== state.selectedLyricId);
+      state.selectedLyricId = null;
+      updateLyricsInput();
+      renderTimeline();
+    });
+    // export
+    els.btnExport.addEventListener('click', () => {
+      populateExportFormats();
+      els.exportModal.style.display = 'flex';
+      els.exportProgressWrap.classList.add('hidden');
+    });
+    els.btnCancelExport.addEventListener('click', () => { els.exportModal.style.display = 'none'; });
+    els.btnStartExport.addEventListener('click', startExport);
+    // timeline scrub
+    els.timelineContainer.addEventListener('mousedown', e => {
+      if (e.target.closest('.lyric-block')) return;
+      const rect = els.timelineTrack.getBoundingClientRect();
+      const t = (e.clientX - rect.left) / state.zoom;
+      audioEl.currentTime = clamp(t, 0, state.audioDuration || 30);
+      state.currentTime = audioEl.currentTime;
+    });
+    // window resize
+    window.addEventListener('resize', () => {});
+  }
+  function applyStyleToControls() {
+    els.bgTheme.value = state.style.bgTheme;
+    els.bgColor.value = state.style.bgColor;
+    els.fontFamily.value = state.style.fontFamily;
+    els.fontSize.value = state.style.fontSize;
+    els.textColor.value = state.style.textColor;
+    els.highlightColor.value = state.style.highlightColor;
+    els.strokeColor.value = state.style.strokeColor;
+    els.strokeWidth.value = state.style.strokeWidth;
+    els.shadowBlur.value = state.style.shadowBlur;
+    els.animIn.value = state.style.animIn;
+    els.animHold.value = state.style.animHold;
+    els.animOut.value = state.style.animOut;
+    els.animIntensity.value = state.style.animIntensity * 100;
+  }
+
+  // ===================== INIT =====================
+  function init() {
+    resizeCanvas();
+    bindEvents();
+    applyStyleToControls();
+    // initial demo
+    state.lyrics = JSON.parse(JSON.stringify(DEMO_LYRICS));
+    updateLyricsInput();
+    renderTimeline();
+    loop();
+    // auto generate demo audio after user interaction to avoid autoplay policy issues
+    const startDemo = () => {
+      if (!audioEl.src && state.mode === 'demo') generateDemoAudio();
+      window.removeEventListener('click', startDemo);
+    };
+    window.addEventListener('click', startDemo, { once: true });
+  }
+  init();
+})();
+</script>
+</body>
+</html>
