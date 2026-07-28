@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Lyrical VJ Studio 歌词VJ生成器</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&family=Noto+Serif+SC:wght@400;700&family=LXGW+WenKai&family=ZCOOL+XiaoWei&family=ZCOOL+QingKe+HuangYou&family=ZCOOL+KuaiLe&family=Ma+Shan+Zheng&family=Zhi+Mang+Xing&family=Long+Cang&family=Liu+Jian+Mao+Cao&display=swap" rel="stylesheet">
   <style>
     :root {
       --bg: #0b0c10;
@@ -293,23 +296,67 @@
               <option value="grid">几何脉冲</option>
               <option value="stars">星空闪烁</option>
               <option value="solid">纯色暗角</option>
+              <option value="image">自定义图片</option>
             </select>
+            <div id="bgImageControls" class="hidden">
+              <input type="file" id="bgImageFile" accept="image/jpeg,image/png,image/webp" />
+              <div class="file-name" id="bgImageName">未选择图片</div>
+              <label>图片填充方式</label>
+              <select id="bgImageFit">
+                <option value="cover">填充（cover）</option>
+                <option value="contain">适应（contain）</option>
+                <option value="stretch">拉伸</option>
+                <option value="tile">平铺</option>
+              </select>
+              <label>图片亮度</label>
+              <input type="range" id="bgImageBrightness" min="10" max="200" value="80" />
+              <button id="btnClearBgImage" class="w-full mt-2">清除图片背景</button>
+            </div>
             <label>背景色</label>
             <input type="color" id="bgColor" value="#0b0c10" />
           </div>
           <div class="section">
             <div class="section-title">歌词文字</div>
-            <label>字体</label>
+            <label>字体（请选择可商用免费字体）</label>
             <select id="fontFamily">
-              <option value="PingFang SC, Microsoft YaHei, sans-serif">系统黑体</option>
-              <option value="Arial, sans-serif">Arial</option>
-              <option value="Georgia, serif">Georgia</option>
-              <option value="Courier New, monospace">Monospace</option>
+              <optgroup label="开源可商用字体">
+                <option value="'Noto Sans SC', 'Source Han Sans SC', sans-serif">思源黑体 / Noto Sans SC</option>
+                <option value="'Noto Serif SC', 'Source Han Serif SC', serif">思源宋体 / Noto Serif SC</option>
+                <option value="'LXGW WenKai', serif">霞鹜文楷（开源可商用）</option>
+                <option value="'ZCOOL XiaoWei', sans-serif">站酷小薇体（免费商用）</option>
+                <option value="'ZCOOL QingKe HuangYou', sans-serif">站酷庆科黄油体（免费商用）</option>
+                <option value="'ZCOOL KuaiLe', sans-serif">站酷快乐体（免费商用）</option>
+                <option value="'Ma Shan Zheng', cursive">马善政毛笔楷体（免费商用）</option>
+                <option value="'Zhi Mang Xing', cursive">枝蔓行楷（免费商用）</option>
+                <option value="'Long Cang', cursive">龙苍书法（免费商用）</option>
+                <option value="'Liu Jian Mao Cao', cursive">刘建毛笔草书（免费商用）</option>
+                <option value="'ZCOOL Addict Italic 02', sans-serif">站酷 Addict Italic（免费商用）</option>
+              </optgroup>
+              <optgroup label="系统字体（需确认商用授权）">
+                <option value="PingFang SC, Microsoft YaHei, sans-serif">系统黑体（PingFang / 微软雅黑）</option>
+                <option value="Arial, sans-serif">Arial</option>
+              </optgroup>
             </select>
+            <div class="hint">默认优先使用开源可商用字体，通过 Google Fonts CDN 加载。</div>
             <label>字号</label>
-            <input type="range" id="fontSize" min="30" max="160" value="72" />
-            <label>文字颜色</label>
-            <input type="color" id="textColor" value="#ffffff" />
+            <input type="range" id="fontSize" min="30" max="200" value="72" />
+            <label>文字颜色模式</label>
+            <select id="textColorMode">
+              <option value="solid">固定颜色</option>
+              <option value="rainbow">彩虹流动</option>
+              <option value="gradient">双色渐变</option>
+              <option value="cycle">颜色轮播</option>
+            </select>
+            <div id="solidColorControl">
+              <label>文字颜色</label>
+              <input type="color" id="textColor" value="#ffffff" />
+            </div>
+            <div id="gradientColorControls" class="hidden">
+              <label>渐变起始色</label>
+              <input type="color" id="textGradientStart" value="#00d2ff" />
+              <label>渐变结束色</label>
+              <input type="color" id="textGradientEnd" value="#ff2a6d" />
+            </div>
             <label>高亮颜色</label>
             <input type="color" id="highlightColor" value="#00d2ff" />
             <label>描边颜色</label>
@@ -343,6 +390,15 @@
             </select>
             <label>动画强度</label>
             <input type="range" id="animIntensity" min="0" max="100" value="50" />
+            <label>歌词显示模式</label>
+            <select id="lyricsDisplayMode">
+              <option value="single">单行居中</option>
+              <option value="dual">双行卡拉OK</option>
+              <option value="scrollUp">逐行上滚</option>
+              <option value="scrollLeft">横向滚动</option>
+            </select>
+            <label>滚动速度</label>
+            <input type="range" id="scrollSpeed" min="10" max="200" value="80" />
           </div>
         </div>
       </div>
@@ -444,9 +500,15 @@
     style: {
       bgTheme: 'gradient',
       bgColor: '#0b0c10',
-      fontFamily: 'PingFang SC, Microsoft YaHei, sans-serif',
+      bgImage: null,
+      bgImageFit: 'cover',
+      bgImageBrightness: 0.8,
+      fontFamily: "'Noto Sans SC', 'Source Han Sans SC', sans-serif",
       fontSize: 72,
       textColor: '#ffffff',
+      textColorMode: 'solid',
+      textGradientStart: '#00d2ff',
+      textGradientEnd: '#ff2a6d',
       highlightColor: '#00d2ff',
       strokeColor: '#000000',
       strokeWidth: 6,
@@ -454,7 +516,9 @@
       animIn: 'fade',
       animHold: 'pulse',
       animOut: 'fade',
-      animIntensity: 0.5
+      animIntensity: 0.5,
+      lyricsDisplayMode: 'single',
+      scrollSpeed: 80
     },
     isExporting: false
   };
@@ -508,9 +572,20 @@
     aspectRatio: document.getElementById('aspectRatio'),
     bgTheme: document.getElementById('bgTheme'),
     bgColor: document.getElementById('bgColor'),
+    bgImageControls: document.getElementById('bgImageControls'),
+    bgImageFile: document.getElementById('bgImageFile'),
+    bgImageName: document.getElementById('bgImageName'),
+    bgImageFit: document.getElementById('bgImageFit'),
+    bgImageBrightness: document.getElementById('bgImageBrightness'),
+    btnClearBgImage: document.getElementById('btnClearBgImage'),
     fontFamily: document.getElementById('fontFamily'),
     fontSize: document.getElementById('fontSize'),
+    textColorMode: document.getElementById('textColorMode'),
+    solidColorControl: document.getElementById('solidColorControl'),
+    gradientColorControls: document.getElementById('gradientColorControls'),
     textColor: document.getElementById('textColor'),
+    textGradientStart: document.getElementById('textGradientStart'),
+    textGradientEnd: document.getElementById('textGradientEnd'),
     highlightColor: document.getElementById('highlightColor'),
     strokeColor: document.getElementById('strokeColor'),
     strokeWidth: document.getElementById('strokeWidth'),
@@ -519,6 +594,8 @@
     animHold: document.getElementById('animHold'),
     animOut: document.getElementById('animOut'),
     animIntensity: document.getElementById('animIntensity'),
+    lyricsDisplayMode: document.getElementById('lyricsDisplayMode'),
+    scrollSpeed: document.getElementById('scrollSpeed'),
     btnPlay: document.getElementById('btnPlay'),
     btnStop: document.getElementById('btnStop'),
     btnLoop: document.getElementById('btnLoop'),
@@ -1130,12 +1207,102 @@
         ctx.fillStyle = `rgba(255,255,255,${0.2 + twinkle*0.8})`;
         ctx.fill();
       }
+    } else if (theme === 'image') {
+      ctx.fillStyle = baseColor; ctx.fillRect(0,0,w,h);
+      drawImageBackground(w, h);
     }
     ctx.restore();
   }
+  function drawImageBackground(w, h) {
+    if (!state.style.bgImage || !state.style.bgImage.complete) return;
+    ctx.save();
+    const img = state.style.bgImage;
+    const fit = state.style.bgImageFit || 'cover';
+    const brightness = state.style.bgImageBrightness;
+    ctx.filter = `brightness(${brightness}%)`;
+    if (fit === 'stretch') {
+      ctx.drawImage(img, 0, 0, w, h);
+    } else if (fit === 'cover') {
+      const scale = Math.max(w / img.width, h / img.height);
+      const sw = img.width * scale, sh = img.height * scale;
+      const sx = (w - sw) / 2, sy = (h - sh) / 2;
+      ctx.drawImage(img, sx, sy, sw, sh);
+    } else if (fit === 'contain') {
+      const scale = Math.min(w / img.width, h / img.height);
+      const sw = img.width * scale, sh = img.height * scale;
+      const sx = (w - sw) / 2, sy = (h - sh) / 2;
+      ctx.fillStyle = '#000'; ctx.fillRect(0,0,w,h);
+      ctx.drawImage(img, sx, sy, sw, sh);
+    } else if (fit === 'tile') {
+      const pattern = ctx.createPattern(img, 'repeat');
+      ctx.fillStyle = pattern;
+      ctx.fillRect(0,0,w,h);
+    }
+    // vignette overlay for readability
+    const grad = ctx.createRadialGradient(w/2,h/2,0,w/2,h/2,Math.max(w,h)/1.2);
+    grad.addColorStop(0, 'rgba(0,0,0,0)');
+    grad.addColorStop(1, 'rgba(0,0,0,.45)');
+    ctx.filter = 'none';
+    ctx.fillStyle = grad; ctx.fillRect(0,0,w,h);
+    ctx.restore();
+  }
   function drawLyrics(time, w, h) {
+    const mode = state.style.lyricsDisplayMode || 'single';
+    if (mode === 'single') drawSingleLyric(time, w, h);
+    else if (mode === 'dual') drawDualLyric(time, w, h);
+    else if (mode === 'scrollUp') drawScrollUpLyrics(time, w, h);
+    else if (mode === 'scrollLeft') drawScrollLeftLyrics(time, w, h);
+  }
+  function setupTextContext(ctx, fontSize) {
+    ctx.font = `bold ${fontSize}px ${state.style.fontFamily}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.lineJoin = 'round';
+    ctx.miterLimit = 2;
+  }
+  function getTextFillStyle(ctx, text, x, y, time, width) {
+    const mode = state.style.textColorMode || 'solid';
+    if (mode === 'solid') return state.style.textColor;
+    if (mode === 'rainbow') {
+      const gradient = ctx.createLinearGradient(x - width/2, y, x + width/2, y);
+      const offset = time * 60;
+      for (let i = 0; i <= 6; i++) {
+        gradient.addColorStop(i / 6, `hsl(${(i * 60 + offset) % 360}, 90%, 60%)`);
+      }
+      return gradient;
+    }
+    if (mode === 'gradient') {
+      const gradient = ctx.createLinearGradient(x - width/2, y - width/4, x + width/2, y + width/4);
+      gradient.addColorStop(0, state.style.textGradientStart);
+      gradient.addColorStop(1, state.style.textGradientEnd);
+      return gradient;
+    }
+    if (mode === 'cycle') {
+      const hue = (time * 60) % 360;
+      return `hsl(${hue}, 85%, 60%)`;
+    }
+    return state.style.textColor;
+  }
+  function drawStyledText(ctx, text, x, y, opts = {}) {
+    const { fillStyle, stroke = true, shadow = true, align = 'center' } = opts;
+    ctx.textAlign = align;
+    const sw = state.style.strokeWidth;
+    if (shadow && state.style.shadowBlur > 0) {
+      ctx.shadowColor = 'rgba(0,0,0,.6)';
+      ctx.shadowBlur = state.style.shadowBlur;
+      ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 4;
+    }
+    if (stroke && sw > 0) {
+      ctx.strokeStyle = state.style.strokeColor;
+      ctx.lineWidth = sw;
+      ctx.strokeText(text, x, y);
+    }
+    ctx.shadowColor = 'transparent';
+    ctx.fillStyle = fillStyle || state.style.textColor;
+    ctx.fillText(text, x, y);
+  }
+  function drawSingleLyric(time, w, h) {
     const active = state.lyrics.filter(l => time >= l.start - 0.5 && time <= l.end + 0.5);
-    // Keep only one or two active lines
     active.sort((a,b) => a.start - b.start);
     const line = active.find(l => time >= l.start && time < l.end) || active[0];
     if (!line) return;
@@ -1145,42 +1312,162 @@
     ctx.translate(w/2 + anim.x, h/2 + anim.y);
     ctx.scale(anim.scale, anim.scale);
     ctx.globalAlpha = anim.alpha;
-    ctx.font = `bold ${state.style.fontSize}px ${state.style.fontFamily}`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.lineJoin = 'round';
-    ctx.miterLimit = 2;
+    setupTextContext(ctx, state.style.fontSize);
     const lines = wrapText(line.text, w * 0.85, state.style.fontSize);
     const lineHeight = state.style.fontSize * 1.25;
-    const totalH = lines.length * lineHeight;
-    const shadow = state.style.shadowBlur;
-    if (shadow > 0) {
-      ctx.shadowColor = 'rgba(0,0,0,.6)';
-      ctx.shadowBlur = shadow;
-      ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 4;
-    }
     lines.forEach((txt, idx) => {
       const y = (idx - (lines.length-1)/2) * lineHeight;
-      // stroke
-      const sw = state.style.strokeWidth;
-      if (sw > 0) {
-        ctx.strokeStyle = state.style.strokeColor;
-        ctx.lineWidth = sw;
-        ctx.strokeText(txt, 0, y);
-      }
-      // fill with karaoke highlight
       const textW = ctx.measureText(txt).width;
+      const fillStyle = getTextFillStyle(ctx, txt, 0, y, time, textW);
+      // highlight (karaoke) using clip
       const highlightW = textW * progress;
+      if (highlightW > 0) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(-textW/2, y - lineHeight/2, highlightW, lineHeight);
+        ctx.clip();
+        drawStyledText(ctx, txt, 0, y, { fillStyle: state.style.highlightColor });
+        ctx.restore();
+      }
+      // remaining text with clip to avoid overlapping highlight
       ctx.save();
       ctx.beginPath();
-      ctx.rect(-textW/2, y - lineHeight/2, highlightW, lineHeight);
+      ctx.rect(-textW/2 + highlightW, y - lineHeight/2, textW - highlightW, lineHeight);
       ctx.clip();
-      ctx.fillStyle = state.style.highlightColor;
-      ctx.fillText(txt, 0, y);
+      drawStyledText(ctx, txt, 0, y, { fillStyle });
       ctx.restore();
-      ctx.fillStyle = state.style.textColor;
-      ctx.fillText(txt, 0, y);
     });
+    ctx.restore();
+  }
+  function drawDualLyric(time, w, h) {
+    const active = state.lyrics.filter(l => time >= l.start - 0.5 && time <= l.end + 0.5);
+    active.sort((a,b) => a.start - b.start);
+    const currentIdx = active.findIndex(l => time >= l.start && time < l.end);
+    let cur = active[currentIdx];
+    let next = active[currentIdx + 1];
+    if (!cur) { cur = active[0]; next = active[1]; }
+    if (!cur) return;
+    const fontSize = state.style.fontSize * 0.9;
+    const lineHeight = fontSize * 1.3;
+    const centerY = h / 2;
+    ctx.save();
+    setupTextContext(ctx, fontSize);
+    const drawOneLine = (line, yOffset, alphaScale = 1) => {
+      const progress = clamp((time - line.start) / Math.max(0.01, line.end - line.start), 0, 1);
+      const anim = computeLyricTransform(line, time, progress);
+      ctx.save();
+      ctx.translate(w/2 + anim.x, centerY + yOffset + anim.y);
+      ctx.scale(anim.scale, anim.scale);
+      ctx.globalAlpha = anim.alpha * alphaScale;
+      const lines = wrapText(line.text, w * 0.88, fontSize);
+      lines.forEach((txt, idx) => {
+        const y = (idx - (lines.length-1)/2) * lineHeight;
+        const textW = ctx.measureText(txt).width;
+        const fillStyle = getTextFillStyle(ctx, txt, 0, y, time, textW);
+        const highlightW = textW * progress;
+        if (highlightW > 0) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(-textW/2, y - lineHeight/2, highlightW, lineHeight);
+          ctx.clip();
+          drawStyledText(ctx, txt, 0, y, { fillStyle: state.style.highlightColor });
+          ctx.restore();
+        }
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(-textW/2 + highlightW, y - lineHeight/2, textW - highlightW, lineHeight);
+        ctx.clip();
+        drawStyledText(ctx, txt, 0, y, { fillStyle });
+        ctx.restore();
+      });
+      ctx.restore();
+    };
+    drawOneLine(cur, -lineHeight * 0.7);
+    if (next) drawOneLine(next, lineHeight * 0.7, 0.85);
+    ctx.restore();
+  }
+  function drawScrollUpLyrics(time, w, h) {
+    const lines = state.lyrics;
+    if (!lines.length) return;
+    const fontSize = state.style.fontSize * 0.85;
+    const lineHeight = fontSize * 1.6;
+    // target current line at 60% height
+    const currentIdx = Math.max(0, lines.findIndex(l => time < l.end) - 1);
+    const curLine = lines[currentIdx] || lines[0];
+    const targetY = h * 0.55;
+    const baseY = targetY - currentIdx * lineHeight - ((time - curLine.start) / Math.max(0.01, curLine.end - curLine.start)) * lineHeight * 0.5;
+    ctx.save();
+    setupTextContext(ctx, fontSize);
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const y = baseY + i * lineHeight;
+      if (y < -lineHeight || y > h + lineHeight) continue;
+      const dist = Math.abs(y - targetY) / (h * 0.3);
+      const alpha = Math.max(0.25, 1 - dist * 0.8);
+      const scale = 1 + (1 - Math.min(1, dist)) * 0.1;
+      const isCurrent = time >= line.start && time < line.end;
+      const progress = isCurrent ? clamp((time - line.start) / Math.max(0.01, line.end - line.start), 0, 1) : 1;
+      ctx.save();
+      ctx.translate(w/2, y);
+      ctx.scale(scale, scale);
+      ctx.globalAlpha = alpha;
+      const txt = line.text;
+      const textW = ctx.measureText(txt).width;
+      const fillStyle = getTextFillStyle(ctx, txt, 0, 0, time, textW);
+      const highlightW = isCurrent ? textW * progress : (time > line.end ? textW : 0);
+      if (highlightW > 0) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(-textW/2, -lineHeight/2, highlightW, lineHeight);
+        ctx.clip();
+        drawStyledText(ctx, txt, 0, 0, { fillStyle: state.style.highlightColor });
+        ctx.restore();
+      }
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(-textW/2 + highlightW, -lineHeight/2, textW - highlightW, lineHeight);
+      ctx.clip();
+      drawStyledText(ctx, txt, 0, 0, { fillStyle });
+      ctx.restore();
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+  function drawScrollLeftLyrics(time, w, h) {
+    const lines = state.lyrics;
+    if (!lines.length) return;
+    const line = lines.find(l => time >= l.start && time < l.end) || lines[0];
+    if (!line) return;
+    const fontSize = state.style.fontSize;
+    const speed = state.style.scrollSpeed || 80;
+    const progress = clamp((time - line.start) / Math.max(0.01, line.end - line.start), 0, 1);
+    ctx.save();
+    ctx.font = `bold ${fontSize}px ${state.style.fontFamily}`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.lineJoin = 'round';
+    const textW = ctx.measureText(line.text).width;
+    // Start off-screen right, end off-screen left
+    const startX = w + 50;
+    const endX = -textW - 50;
+    const x = startX + (endX - startX) * progress * (speed / 80);
+    const y = h / 2;
+    const fillStyle = getTextFillStyle(ctx, line.text, x, y, time, textW);
+    const highlightW = textW * progress;
+    if (highlightW > 0) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(x, y - fontSize/2, highlightW, fontSize);
+      ctx.clip();
+      drawStyledText(ctx, line.text, x, y, { fillStyle: state.style.highlightColor, align: 'left' });
+      ctx.restore();
+    }
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(x + highlightW, y - fontSize/2, textW - highlightW, fontSize);
+    ctx.clip();
+    drawStyledText(ctx, line.text, x, y, { fillStyle, align: 'left' });
+    ctx.restore();
     ctx.restore();
   }
   function wrapText(text, maxWidth, fontSize) {
@@ -1578,7 +1865,9 @@
       reader.readAsText(f);
     });
     els.btnExportJson.addEventListener('click', () => {
-      const data = { lyrics: state.lyrics, style: state.style, aspectRatio: state.aspectRatio };
+      const styleData = { ...state.style };
+      delete styleData.bgImage; // Image object cannot be serialized
+      const data = { lyrics: state.lyrics, style: styleData, aspectRatio: state.aspectRatio };
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob); a.download = 'lyrical-vj-project.json';
@@ -1592,16 +1881,53 @@
       resizeCanvas();
     });
     [
-      ['bgTheme', 'bgTheme'], ['bgColor', 'bgColor'], ['fontFamily', 'fontFamily'],
+      ['bgTheme', 'bgTheme'], ['bgColor', 'bgColor'],
+      ['fontFamily', 'fontFamily'],
       ['fontSize', 'fontSize', 'number'], ['textColor', 'textColor'], ['highlightColor', 'highlightColor'],
       ['strokeColor', 'strokeColor'], ['strokeWidth', 'strokeWidth', 'number'],
       ['shadowBlur', 'shadowBlur', 'number'], ['animIn', 'animIn'], ['animHold', 'animHold'],
-      ['animOut', 'animOut'], ['animIntensity', 'animIntensity', 'number']
+      ['animOut', 'animOut'], ['animIntensity', 'animIntensity', 'number'],
+      ['textColorMode', 'textColorMode'], ['textGradientStart', 'textGradientStart'],
+      ['textGradientEnd', 'textGradientEnd'], ['lyricsDisplayMode', 'lyricsDisplayMode'],
+      ['scrollSpeed', 'scrollSpeed', 'number'],
+      ['bgImageFit', 'bgImageFit'], ['bgImageBrightness', 'bgImageBrightness', 'number']
     ].forEach(([id, key, type]) => {
       els[id].addEventListener('input', () => {
         state.style[key] = type === 'number' ? parseFloat(els[id].value) : els[id].value;
         if (key === 'animIntensity') state.style[key] /= 100;
       });
+    });
+    els.bgTheme.addEventListener('change', () => {
+      const isImage = state.style.bgTheme === 'image';
+      els.bgImageControls.classList.toggle('hidden', !isImage);
+    });
+    els.textColorMode.addEventListener('change', () => {
+      const mode = state.style.textColorMode;
+      els.solidColorControl.classList.toggle('hidden', mode !== 'solid');
+      els.gradientColorControls.classList.toggle('hidden', mode !== 'gradient' && mode !== 'rainbow');
+    });
+    // background image upload
+    els.bgImageFile.addEventListener('change', e => {
+      const f = e.target.files[0]; if (!f) return;
+      const url = URL.createObjectURL(f);
+      const img = new Image();
+      img.onload = () => {
+        state.style.bgImage = img;
+        state.style.bgTheme = 'image';
+        els.bgTheme.value = 'image';
+        els.bgImageControls.classList.remove('hidden');
+        els.bgImageName.textContent = f.name;
+        toast('图片背景已加载');
+      };
+      img.src = url;
+    });
+    els.btnClearBgImage.addEventListener('click', () => {
+      state.style.bgImage = null;
+      state.style.bgTheme = 'gradient';
+      els.bgTheme.value = 'gradient';
+      els.bgImageFile.value = '';
+      els.bgImageName.textContent = '未选择图片';
+      els.bgImageControls.classList.add('hidden');
     });
     // timeline toolbar
     els.btnZoomIn.addEventListener('click', () => { state.zoom = clamp(state.zoom * 1.2, 20, 800); els.zoomLabel.textContent = `${Math.round(state.zoom)} px/s`; renderTimeline(); });
@@ -1644,9 +1970,15 @@
   function applyStyleToControls() {
     els.bgTheme.value = state.style.bgTheme;
     els.bgColor.value = state.style.bgColor;
+    els.bgImageControls.classList.toggle('hidden', state.style.bgTheme !== 'image');
     els.fontFamily.value = state.style.fontFamily;
     els.fontSize.value = state.style.fontSize;
+    els.textColorMode.value = state.style.textColorMode;
+    els.solidColorControl.classList.toggle('hidden', state.style.textColorMode !== 'solid');
+    els.gradientColorControls.classList.toggle('hidden', state.style.textColorMode !== 'gradient' && state.style.textColorMode !== 'rainbow');
     els.textColor.value = state.style.textColor;
+    els.textGradientStart.value = state.style.textGradientStart;
+    els.textGradientEnd.value = state.style.textGradientEnd;
     els.highlightColor.value = state.style.highlightColor;
     els.strokeColor.value = state.style.strokeColor;
     els.strokeWidth.value = state.style.strokeWidth;
@@ -1655,6 +1987,10 @@
     els.animHold.value = state.style.animHold;
     els.animOut.value = state.style.animOut;
     els.animIntensity.value = state.style.animIntensity * 100;
+    els.lyricsDisplayMode.value = state.style.lyricsDisplayMode;
+    els.scrollSpeed.value = state.style.scrollSpeed;
+    els.bgImageFit.value = state.style.bgImageFit;
+    els.bgImageBrightness.value = state.style.bgImageBrightness * 100;
   }
 
   // ===================== INIT =====================
