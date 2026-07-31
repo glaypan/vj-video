@@ -1,348 +1,321 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Lyrical VJ Studio 歌词VJ生成器</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&family=Noto+Serif+SC:wght@400;700&family=LXGW+WenKai&family=ZCOOL+XiaoWei&family=ZCOOL+QingKe+HuangYou&family=ZCOOL+KuaiLe&family=Ma+Shan+Zheng&family=Zhi+Mang+Xing&family=Long+Cang&family=Liu+Jian+Mao+Cao&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&family=Noto+Serif+SC:wght@400;700&family=Noto+Sans+Rounded+SC:wght@400;700&family=LXGW+WenKai&family=ZCOOL+XiaoWei&family=ZCOOL+QingKe+HuangYou&family=ZCOOL+KuaiLe&family=Ma+Shan+Zheng&family=Zhi+Mang+Xing&family=Long+Cang&family=Liu+Jian+Mao+Cao&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #05060d;
-      --panel: rgba(16, 18, 28, 0.75);
-      --panel-2: rgba(26, 30, 46, 0.6);
-      --accent: #00f0ff;
-      --accent-2: #ff2a8d;
-      --accent-3: #b14bff;
-      --text: #e8ecff;
-      --text-dim: #7a81a6;
-      --border: rgba(0, 240, 255, 0.18);
-      --success: #00ffa3;
-      --warning: #ffd23f;
-      --danger: #ff3b6b;
+      --radius: 4px;
+      --radius-lg: 8px;
+      --transition: 120ms cubic-bezier(0.4, 0, 0.2, 1);
     }
-    @keyframes neonPulse {
-      0%,100% { box-shadow: 0 0 12px rgba(0,240,255,.35), 0 0 24px rgba(0,240,255,.15); }
-      50% { box-shadow: 0 0 20px rgba(0,240,255,.6), 0 0 40px rgba(0,240,255,.25); }
+    /* 黑色主题（默认） */
+    [data-theme="dark"] {
+      --bg: #08090B;
+      --bg-elevated: #0E0F12;
+      --panel: #121316;
+      --panel-hover: #1A1B1F;
+      --border: rgba(255, 255, 255, 0.05);
+      --border-strong: rgba(255, 255, 255, 0.10);
+      --border-focus: rgba(255, 255, 255, 0.18);
+      --text: #DCDCE0;
+      --text-dim: #6B6B73;
+      --text-muted: #48484E;
+      --accent: #C8C8D0;
+      --accent-hover: #FFFFFF;
+      --accent-glow: rgba(200, 200, 208, 0.12);
+      --success: #34D399;
+      --danger: #F87171;
     }
-    @keyframes slideGlow {
-      0% { background-position: 0% 50%; }
-      100% { background-position: 200% 50%; }
+    /* 白色主题 */
+    [data-theme="light"] {
+      --bg: #F5F4F0;
+      --bg-elevated: #FFFFFF;
+      --panel: #FAFAF7;
+      --panel-hover: #EDEBE5;
+      --border: rgba(0, 0, 0, 0.08);
+      --border-strong: rgba(0, 0, 0, 0.14);
+      --border-focus: rgba(0, 0, 0, 0.22);
+      --text: #1A1A1A;
+      --text-dim: #6B6B6B;
+      --text-muted: #9A9A9A;
+      --accent: #2A2A2A;
+      --accent-hover: #000000;
+      --accent-glow: rgba(0, 0, 0, 0.08);
+      --success: #059669;
+      --danger: #DC2626;
     }
-    @keyframes gridShift {
-      0% { background-position: 0 0, 0 0; }
-      100% { background-position: 40px 40px, 40px 40px; }
+    .theme-toggle {
+      width: 28px; height: 28px;
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 0; font-size: 14px;
+      border-radius: var(--radius);
     }
+    /* 设置面板精简：选择预设时通过 CSS :has() 隐藏自定义控件（不依赖 JS 事件） */
+    .panel-content:has(#subtitlePreset option:checked:not([value="default"])) [data-preset-hidden] { display: none !important; }
+    .panel-content:has(#subtitlePreset option:checked:not([value="default"])) #presetTuning { display: block !important; }
+    .panel-content:has(#subtitlePreset option:checked[value="default"]) #presetTuning { display: none !important; }
     * { box-sizing: border-box; }
     html, body {
       margin: 0; padding: 0;
       width: 100%; height: 100%;
-      background:
-        radial-gradient(ellipse at top left, rgba(0,240,255,.08), transparent 60%),
-        radial-gradient(ellipse at bottom right, rgba(255,42,141,.08), transparent 60%),
-        var(--bg);
+      background: var(--bg);
       color: var(--text);
-      font-family: "Inter", "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-family: "Geist", "Inter", "SF Pro Display", "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-size: 13px;
       overflow: hidden;
-    }
-    body::before {
-      content: '';
-      position: fixed; inset: 0; pointer-events: none;
-      background-image:
-        linear-gradient(rgba(0,240,255,.06) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0,240,255,.06) 1px, transparent 1px);
-      background-size: 40px 40px;
-      animation: gridShift 8s linear infinite;
-      z-index: 0;
+      -webkit-font-smoothing: antialiased;
+      letter-spacing: -0.01em;
     }
     button, input, select, textarea {
       font-family: inherit;
+      font-size: 12.5px;
       color: var(--text);
-      background: rgba(26, 30, 46, 0.8);
+      background: var(--bg-elevated);
       border: 1px solid var(--border);
-      border-radius: 6px;
+      border-radius: var(--radius);
       outline: none;
-      transition: all .15s ease;
-      backdrop-filter: blur(8px);
+      transition: border-color var(--transition), background-color var(--transition);
     }
-    button { cursor: pointer; transition: all .2s ease; }
-    button:hover { border-color: var(--accent); box-shadow: 0 0 10px rgba(0,240,255,.3); }
+    button { cursor: pointer; padding: 6px 12px; }
+    button:hover { border-color: var(--border-strong); background: var(--panel-hover); }
+    button:active { transform: scale(0.98); }
     button.primary {
-      background: linear-gradient(135deg, #00f0ff, #b14bff, #ff2a8d);
-      background-size: 200% 200%;
-      animation: slideGlow 3s linear infinite;
-      border: none;
-      color: #fff; font-weight: 700; letter-spacing: .5px;
-      box-shadow: 0 0 20px rgba(0,240,255,.4), 0 0 40px rgba(177,75,255,.3);
+      background: var(--text);
+      border: 1px solid var(--text);
+      color: var(--bg);
+      font-weight: 600;
     }
-    button.primary:hover { filter: brightness(1.15); }
-    button.danger { background: var(--danger); border: none; }
-    input, select, textarea { padding: 8px 10px; }
+    button.primary:hover {
+      background: var(--accent-hover);
+      border-color: var(--accent-hover);
+    }
+    button.danger { background: var(--danger); border: 1px solid var(--danger); color: #fff; }
+    input, select, textarea { padding: 7px 10px; }
     input[type="file"] { padding: 4px; }
-    label { display: block; font-size: 12px; color: var(--text-dim); margin: 10px 0 4px; letter-spacing: .5px; }
-    .app { display: flex; flex-direction: column; height: 100vh; position: relative; z-index: 1; }
+    input:focus, select:focus, textarea:focus { border-color: var(--border-focus); }
+    input[type="range"] { accent-color: var(--text-dim); }
+    label { display: block; font-size: 11px; color: var(--text-dim); margin: 12px 0 5px; font-weight: 500; letter-spacing: 0.02em; text-transform: uppercase; }
+    .app { display: flex; flex-direction: column; height: 100vh; }
     .topbar {
-      height: 56px;
+      height: 44px;
       display: flex; align-items: center; justify-content: space-between;
-      padding: 0 20px;
-      background: rgba(16, 18, 28, 0.85);
+      padding: 0 14px;
+      background: var(--panel);
       border-bottom: 1px solid var(--border);
-      backdrop-filter: blur(12px);
-      position: relative;
-      z-index: 10;
-    }
-    .topbar::after {
-      content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 1px;
-      background: linear-gradient(90deg, transparent, var(--accent), var(--accent-3), var(--accent-2), transparent);
-      background-size: 200% 100%;
-      animation: slideGlow 4s linear infinite;
     }
     .topbar .title {
-      font-size: 18px; font-weight: 800; letter-spacing: 2px;
-      background: linear-gradient(135deg, #00f0ff, #b14bff, #ff2a8d);
-      -webkit-background-clip: text; background-clip: text; color: transparent;
-      text-shadow: 0 0 30px rgba(0,240,255,.5);
+      font-size: 13px; font-weight: 600;
+      color: var(--text);
+      letter-spacing: 0.01em;
     }
-    .topbar .title .logo-icon {
-      display: inline-block; width: 18px; height: 18px; margin-right: 8px;
-      background: linear-gradient(135deg, #00f0ff, #b14bff);
-      border-radius: 4px; vertical-align: -3px;
-      box-shadow: 0 0 10px rgba(0,240,255,.8);
-    }
-    .topbar .actions { display: flex; gap: 12px; align-items: center; }
+    .topbar .actions { display: flex; gap: 6px; align-items: center; }
     .mode-switch {
-      display: flex; gap: 2px;
-      background: rgba(26, 30, 46, 0.8);
-      border-radius: 8px; padding: 3px;
+      display: flex; gap: 0;
+      background: var(--bg-elevated);
+      border-radius: var(--radius); overflow: hidden;
       border: 1px solid var(--border);
     }
     .mode-switch button {
-      background: transparent; border: none; padding: 6px 14px; font-size: 12px;
-      border-radius: 6px; letter-spacing: .5px;
+      background: transparent; border: none; padding: 4px 11px; font-size: 11.5px;
+      border-radius: 0; color: var(--text-dim);
     }
+    .mode-switch button:first-child { border-right: 1px solid var(--border); }
     .mode-switch button.active {
-      background: linear-gradient(135deg, var(--accent), var(--accent-3));
-      color: #000; font-weight: 700;
-      box-shadow: 0 0 12px rgba(0,240,255,.5);
+      background: var(--panel-hover);
+      color: var(--text);
+      font-weight: 500;
     }
     .main { display: flex; flex: 1; min-height: 0; }
     .sidebar {
-      width: 320px;
-      background: rgba(16, 18, 28, 0.85);
+      width: 264px;
+      background: var(--panel);
       border-right: 1px solid var(--border);
       display: flex; flex-direction: column;
       overflow: hidden;
-      backdrop-filter: blur(12px);
     }
     .tabs {
       display: flex; border-bottom: 1px solid var(--border);
-      background: rgba(10, 12, 22, 0.6);
     }
     .tabs button {
-      flex: 1; background: transparent; border: none; padding: 12px 0; font-size: 13px;
-      color: var(--text-dim); letter-spacing: 1px; transition: all .2s;
+      flex: 1; background: transparent; border: none; padding: 10px 0; font-size: 12px;
+      color: var(--text-dim); font-weight: 500;
       position: relative;
+      transition: color var(--transition);
     }
+    .tabs button:hover { color: var(--text); }
     .tabs button.active {
-      color: var(--accent);
-      text-shadow: 0 0 10px rgba(0,240,255,.6);
+      color: var(--text);
     }
     .tabs button.active::after {
-      content: ''; position: absolute; bottom: 0; left: 20%; right: 20%; height: 2px;
-      background: linear-gradient(90deg, var(--accent), var(--accent-3));
-      box-shadow: 0 0 8px var(--accent);
+      content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 1px;
+      background: var(--text);
     }
-    .panel-content { flex: 1; overflow-y: auto; padding: 14px; }
-    .panel-content::-webkit-scrollbar { width: 6px; }
+    .panel-content { flex: 1; overflow-y: auto; padding: 10px; }
+    .panel-content::-webkit-scrollbar { width: 4px; }
     .panel-content::-webkit-scrollbar-track { background: transparent; }
-    .panel-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-    .panel-content::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+    .panel-content::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 2px; }
+    .panel-content::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
     .section {
-      margin-bottom: 16px; padding: 14px;
-      background: rgba(26, 30, 46, 0.4);
+      margin-bottom: 8px; padding: 12px;
+      background: var(--bg-elevated);
       border: 1px solid var(--border);
-      border-radius: 10px;
-      position: relative;
-      overflow: hidden;
-    }
-    .section::before {
-      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
-      background: linear-gradient(90deg, transparent, var(--accent), transparent);
-      opacity: .5;
+      border-radius: var(--radius-lg);
     }
     .section-title {
-      font-size: 13px; font-weight: 700; margin-bottom: 12px;
-      color: var(--accent); letter-spacing: 1px;
-      text-transform: uppercase;
-      display: flex; align-items: center; gap: 8px;
+      font-size: 11px; font-weight: 600; margin-bottom: 10px;
+      color: var(--text);
+      display: flex; align-items: center; gap: 6px;
+      letter-spacing: 0.04em; text-transform: uppercase;
     }
     .section-title::before {
-      content: ''; width: 4px; height: 14px;
-      background: linear-gradient(180deg, var(--accent), var(--accent-3));
-      border-radius: 2px;
-      box-shadow: 0 0 6px var(--accent);
+      content: ''; width: 2px; height: 10px;
+      background: var(--text-dim);
+      border-radius: 1px;
     }
-    .row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+    .row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
     .row > * { flex: 1; }
-    .hint { font-size: 11px; color: var(--text-dim); line-height: 1.6; }
-    .workspace { flex: 1; display: flex; flex-direction: column; min-width: 0; position: relative; }
+    .hint { font-size: 10.5px; color: var(--text-muted); line-height: 1.6; }
+    .workspace { flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--bg); }
     .preview-wrap {
       flex: 1;
       display: flex; align-items: center; justify-content: center;
       position: relative;
       overflow: hidden;
-      padding: 30px;
-    }
-    .preview-wrap::before {
-      content: ''; position: absolute; inset: 10px;
-      background: linear-gradient(135deg, rgba(0,240,255,.1), rgba(177,75,255,.08), rgba(255,42,141,.1));
-      border-radius: 12px;
-      pointer-events: none;
-      z-index: 0;
-      animation: neonPulse 4s ease-in-out infinite;
+      padding: 20px;
     }
     #mainCanvas {
       background: #000;
-      border-radius: 8px;
-      box-shadow:
-        0 0 60px rgba(0, 240, 255, .25),
-        0 0 120px rgba(177, 75, 255, .18),
-        0 20px 60px rgba(0,0,0,.8);
+      border-radius: var(--radius);
       max-width: 100%; max-height: 100%;
-      position: relative; z-index: 1;
-      border: 1px solid rgba(0,240,255,.3);
+      position: relative;
+      border: 1px solid var(--border);
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.5), 0 8px 32px rgba(0,0,0,0.4);
     }
     .transport {
-      height: 60px;
-      background: rgba(16, 18, 28, 0.85);
+      height: 44px;
+      background: var(--panel);
       border-top: 1px solid var(--border);
-      display: flex; align-items: center; gap: 14px;
-      padding: 0 20px;
-      backdrop-filter: blur(12px);
-      position: relative;
-    }
-    .transport::before {
-      content: ''; position: absolute; top: -1px; left: 0; right: 0; height: 1px;
-      background: linear-gradient(90deg, transparent, var(--accent), var(--accent-2), transparent);
-      background-size: 200% 100%;
-      animation: slideGlow 4s linear infinite;
+      display: flex; align-items: center; gap: 10px;
+      padding: 0 14px;
     }
     .transport button {
-      width: 40px; height: 40px; border-radius: 50%;
+      width: 32px; height: 32px; border-radius: var(--radius);
       display: grid; place-items: center;
-      background: linear-gradient(135deg, rgba(0,240,255,.15), rgba(177,75,255,.15));
+      background: var(--bg-elevated);
       border: 1px solid var(--border);
     }
     .transport button:hover {
-      border-color: var(--accent);
-      box-shadow: 0 0 15px rgba(0,240,255,.5);
-      transform: scale(1.05);
+      border-color: var(--border-strong);
+      background: var(--panel-hover);
     }
-    .transport input[type="range"] { flex: 1; accent-color: var(--accent); }
-    .time-display { font-variant-numeric: tabular-nums; font-size: 13px; min-width: 100px; text-align: center; color: var(--accent); letter-spacing: 1px; text-shadow: 0 0 8px rgba(0,240,255,.4); }
+    .transport input[type="range"] { flex: 1; accent-color: var(--text-dim); }
+    .time-display { font-variant-numeric: tabular-nums; font-size: 11.5px; min-width: 96px; text-align: center; color: var(--text-dim); letter-spacing: 0.02em; }
     .timeline-area {
-      height: 180px;
-      background: rgba(10, 12, 22, 0.85);
+      height: 168px;
+      background: var(--bg);
       border-top: 1px solid var(--border);
       display: flex; flex-direction: column;
-      backdrop-filter: blur(12px);
-      position: relative;
     }
     .timeline-toolbar {
-      height: 36px; display: flex; align-items: center; gap: 10px;
-      padding: 0 12px; border-bottom: 1px solid var(--border);
-      background: rgba(16, 18, 28, 0.6);
+      height: 30px; display: flex; align-items: center; gap: 6px;
+      padding: 0 10px; border-bottom: 1px solid var(--border);
+      background: var(--panel);
     }
-    .timeline-toolbar button { padding: 3px 10px; font-size: 11px; letter-spacing: .5px; }
+    .timeline-toolbar button { padding: 3px 8px; font-size: 10.5px; }
     #timelineContainer {
-      flex: 1; position: relative; overflow: auto; cursor: grab;
-      background:
-        linear-gradient(180deg, rgba(0,240,255,.04), transparent 20%, transparent 80%, rgba(255,42,141,.04)),
-        repeating-linear-gradient(90deg, transparent, transparent 99px, rgba(0,240,255,.12) 99px, rgba(0,240,255,.12) 100px);
+      flex: 1; position: relative; overflow: auto; cursor: default;
+      background: var(--bg);
     }
-    #timelineContainer:active { cursor: grabbing; }
+    #timelineContainer.grab { cursor: grab; }
+    #timelineContainer.grab:active { cursor: grabbing; }
     #timelineTrack { position: relative; height: 100%; min-width: 100%; }
     .lyric-block {
       position: absolute;
       top: 50%; transform: translateY(-50%);
-      height: 64px;
-      background: linear-gradient(180deg, rgba(0,240,255,.18), rgba(0,240,255,.08));
-      border: 1px solid rgba(0,240,255,.5);
-      border-radius: 6px;
-      padding: 4px 10px;
+      height: 48px;
+      background: var(--panel);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius);
+      padding: 4px 8px;
       font-size: 11px;
       display: flex; align-items: center;
       overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
       cursor: move; user-select: none;
-      box-shadow: 0 0 12px rgba(0,240,255,.2);
-      transition: box-shadow .2s, border-color .2s;
+      transition: border-color var(--transition), background-color var(--transition), box-shadow var(--transition);
     }
     .lyric-block:hover {
-      border-color: var(--accent);
-      box-shadow: 0 0 18px rgba(0,240,255,.5);
+      border-color: var(--text-dim);
+      box-shadow: 0 0 0 1px var(--accent-glow);
     }
     .lyric-block.selected {
-      background: linear-gradient(180deg, rgba(255,42,141,.3), rgba(255,42,141,.12));
-      border-color: var(--accent-2);
-      box-shadow: 0 0 18px rgba(255,42,141,.5);
+      background: rgba(255, 255, 255, 0.04);
+      border-color: var(--text);
+      box-shadow: 0 0 0 1px var(--accent-glow);
+    }
+    .lyric-block.dragging {
+      opacity: 0.85;
+      z-index: 20;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
     }
     .lyric-block .handle {
-      position: absolute; top: 0; bottom: 0; width: 8px; cursor: ew-resize;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,.2), transparent);
-      transition: background .2s;
+      position: absolute; top: 0; bottom: 0; width: 6px; cursor: ew-resize;
+      transition: background-color var(--transition);
+      z-index: 2;
     }
     .lyric-block .handle:hover {
-      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      background: var(--text-dim);
+      opacity: 0.6;
     }
-    .lyric-block .handle.left { left: 0; }
-    .lyric-block .handle.right { right: 0; }
+    .lyric-block .handle.left { left: 0; border-radius: var(--radius) 0 0 var(--radius); }
+    .lyric-block .handle.right { right: 0; border-radius: 0 var(--radius) var(--radius) 0; }
     .playhead {
-      position: absolute; top: 0; bottom: 0; width: 2px;
-      background: linear-gradient(180deg, var(--accent-2), var(--accent-3));
-      box-shadow: 0 0 12px var(--accent-2), 0 0 24px rgba(255,42,141,.4);
+      position: absolute; top: 0; bottom: 0; width: 1px;
+      background: var(--text);
       pointer-events: none; z-index: 10;
     }
     .playhead::before {
-      content: ''; position: absolute; top: -4px; left: 50%; transform: translateX(-50%);
-      width: 10px; height: 10px; border-radius: 50%;
-      background: var(--accent-2);
-      box-shadow: 0 0 12px var(--accent-2);
+      content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--text);
     }
     .time-ruler {
-      position: absolute; top: 0; left: 0; right: 0; height: 18px;
+      position: absolute; top: 0; left: 0; right: 0; height: 14px;
       border-bottom: 1px solid var(--border);
-      background: rgba(10,12,22,.6);
+      background: var(--panel);
       pointer-events: none;
     }
     .time-label {
-      position: absolute; top: 3px; font-size: 10px; color: var(--text-dim);
-      transform: translateX(-50%); letter-spacing: .5px;
+      position: absolute; top: 1px; font-size: 9px; color: var(--text-muted);
+      transform: translateX(-50%);
+      letter-spacing: 0.02em;
     }
     .modal-overlay {
-      position: fixed; inset: 0; background: rgba(5,6,13,.85);
-      backdrop-filter: blur(6px);
+      position: fixed; inset: 0; background: rgba(0,0,0,.8);
       display: none; align-items: center; justify-content: center; z-index: 100;
+      backdrop-filter: blur(4px);
     }
     .modal {
-      background: rgba(16, 18, 28, 0.95);
-      border: 1px solid var(--accent);
-      border-radius: 12px; width: 440px; max-width: 90%; padding: 24px;
-      box-shadow: 0 0 40px rgba(0,240,255,.3);
+      background: var(--panel);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-lg); width: 420px; max-width: 90%; padding: 20px;
     }
-    .modal h3 { margin: 0 0 14px; font-size: 16px; color: var(--accent); letter-spacing: 1px; }
-    .modal .row { margin-bottom: 14px; }
-    .progress-wrap { margin-top: 14px; }
-    progress { width: 100%; height: 8px; border-radius: 4px; }
+    .modal h3 { margin: 0 0 14px; font-size: 14px; color: var(--text); font-weight: 600; }
+    .modal .row { margin-bottom: 12px; }
+    .progress-wrap { margin-top: 12px; }
+    progress { width: 100%; height: 3px; border-radius: 2px; }
     .toast {
-      position: fixed; bottom: 24px; right: 24px;
-      background: rgba(16,18,28,.95); border: 1px solid var(--accent);
+      position: fixed; bottom: 20px; right: 20px;
+      background: var(--panel); border: 1px solid var(--border-strong);
       color: var(--text);
-      padding: 12px 20px; border-radius: 8px;
-      transform: translateY(20px); opacity: 0; pointer-events: none;
-      transition: all .3s ease; z-index: 200;
-      box-shadow: 0 0 24px rgba(0,240,255,.3);
-      letter-spacing: .5px;
+      padding: 8px 14px; border-radius: var(--radius);
+      transform: translateY(8px); opacity: 0; pointer-events: none;
+      transition: opacity var(--transition), transform var(--transition); z-index: 200;
+      font-size: 11.5px;
     }
     .toast.show { transform: translateY(0); opacity: 1; }
     .hidden { display: none !important; }
@@ -351,44 +324,88 @@
     .w-full { width: 100%; }
     .mt-2 { margin-top: 8px; }
     textarea.lyrics-input {
-      width: 100%; height: 160px; resize: vertical; font-size: 12px;
-      background: rgba(10,12,22,.6);
+      width: 100%; height: 140px; resize: vertical; font-size: 12px;
+      background: var(--bg);
       border: 1px solid var(--border);
-      border-radius: 6px;
+      border-radius: var(--radius);
       color: var(--text);
+      line-height: 1.6;
     }
-    textarea.lyrics-input:focus { border-color: var(--accent); box-shadow: 0 0 8px rgba(0,240,255,.3); }
-    .file-name { font-size: 11px; color: var(--text-dim); word-break: break-all; }
+    textarea.lyrics-input:focus { border-color: var(--border-focus); }
+    .file-name { font-size: 10.5px; color: var(--text-muted); word-break: break-all; }
     .drop-zone {
-      border: 2px dashed var(--border);
-      border-radius: 10px;
-      padding: 24px;
+      border: 1px dashed var(--border-strong);
+      border-radius: var(--radius-lg);
+      padding: 16px;
       text-align: center;
-      font-size: 12px;
-      color: var(--text-dim);
-      margin-top: 8px;
-      transition: all .25s ease;
+      font-size: 11.5px;
+      color: var(--text-muted);
+      margin-top: 6px;
       cursor: pointer;
-      background: rgba(0,240,255,.02);
+      background: var(--bg);
+      transition: border-color var(--transition), color var(--transition), background-color var(--transition);
     }
     .drop-zone:hover, .drop-zone.dragover {
-      border-color: var(--accent);
-      background: rgba(0,240,255,.08);
-      color: var(--accent);
-      box-shadow: 0 0 20px rgba(0,240,255,.2);
+      border-color: var(--text-dim);
+      color: var(--text);
+      background: var(--bg-elevated);
     }
-    .inline-link { color: var(--accent); cursor: pointer; text-decoration: underline; }
+    .inline-link { color: var(--text-dim); cursor: pointer; text-decoration: none; }
+    .inline-link:hover { text-decoration: underline; color: var(--text); }
+    /* 预置微调面板 */
+    .preset-tuning {
+      margin-top: 10px;
+      padding: 12px;
+      border: 1px solid var(--border-strong);
+      border-radius: 6px;
+      background: rgba(255,255,255,0.02);
+    }
+    .preset-tuning-title {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+    }
+    .preset-tuning label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      margin-top: 8px;
+    }
+    .preset-tuning label span {
+      color: var(--text);
+      font-family: 'SF Mono', 'Consolas', monospace;
+      font-size: 10px;
+    }
+    .preset-tuning input[type="range"] { margin-bottom: 4px; }
+    .preset-tuning input[type="color"] {
+      width: 100%;
+      height: 32px;
+      border: 1px solid var(--border-strong);
+      border-radius: 4px;
+      background: var(--bg-elevated);
+      cursor: pointer;
+      padding: 2px;
+    }
   </style>
 </head>
 <body>
 <div class="app">
   <div class="topbar">
-    <div class="title"><span class="logo-icon"></span>Lyrical VJ Studio</div>
+    <div class="title">VJ Studio</div>
     <div class="actions">
       <div class="mode-switch">
-        <button id="modeDemo" class="active">演示模式</button>
-        <button id="modeFull">完整工作</button>
+        <button id="modeDemo" class="active">演示</button>
+        <button id="modeFull">完整模式</button>
       </div>
+      <button id="btnThemeToggle" class="theme-toggle" title="切换主题">◐</button>
       <button id="btnExport" class="primary">导出视频</button>
     </div>
   </div>
@@ -418,16 +435,23 @@
           </div>
           <div class="section">
             <div class="section-title">在线歌词导入</div>
-            <div class="hint">因浏览器跨域限制，无法直接抓取网易云/QQ音乐歌词。可从目标网站复制歌词文本粘贴到下方（支持 LRC 格式或纯文本）。</div>
-            <label>粘贴歌词文本（LRC / 纯文本）</label>
-            <textarea id="onlineLyricsText" class="lyrics-input" style="height:90px;" placeholder="[00:01.00]第一行\n[00:03.50]第二行"></textarea>
+            <div class="hint">
+              <strong>方式一（推荐）：</strong>打开网易云/QQ音乐歌词页，全选歌词文本复制，粘贴到下方输入框，点击"解析并使用"即可。
+              <br><strong>方式二：</strong>粘贴歌曲链接，系统会尝试通过公共代理抓取（若失败请用方式一）。
+            </div>
+            <label>粘贴歌词文本（LRC / 纯文本均可）</label>
+            <textarea id="onlineLyricsText" class="lyrics-input" style="height:100px;" placeholder="[00:01.00]第一行歌词&#10;[00:03.50]第二行歌词&#10;或纯文本：&#10;第一行歌词&#10;第二行歌词"></textarea>
             <div class="row mt-2">
               <button id="btnApplyOnlineLyrics" class="primary">解析并使用</button>
               <button id="btnClearOnlineLyrics">清空</button>
             </div>
-            <label>或粘贴歌曲链接（需手动另存 .lrc 后上传）</label>
-            <input type="text" id="onlineUrl" placeholder="https://music.163.com/#/song?id=xxxxx" />
-            <div class="hint">链接仅用于记录，不直接抓取。建议在目标网站打开歌曲页面，复制歌词文本后粘贴上方区域。</div>
+            <label>或粘贴歌曲链接自动获取</label>
+            <div class="row">
+              <input type="text" id="onlineUrl" placeholder="https://music.163.com/#/song?id=xxxxx" />
+              <button id="btnFetchUrl">获取歌词</button>
+            </div>
+            <div id="fetchStatus" class="hint" style="display:none;"></div>
+            <div class="hint" id="fetchHint">支持网易云、QQ音乐链接。浏览器有跨域限制，若自动获取失败，请手动复制歌词文本粘贴。</div>
           </div>
           <div class="section" id="apiSection" style="display:none;">
             <div class="section-title">语音识别</div>
@@ -460,6 +484,7 @@
               <input type="range" id="globalOffset" min="-5000" max="5000" step="50" value="0" />
               <span id="globalOffsetLabel" class="hint">0 ms</span>
             </div>
+            <div class="hint">拖动滑块实时预览偏移效果：负值提前，正值延后。例如 -500 即所有歌词提前 0.5 秒出现。点击"应用偏移"确认当前位置，点击"重置"恢复到应用前。</div>
             <div class="row">
               <button id="btnApplyGlobalOffset">应用偏移</button>
               <button id="btnResetGlobalOffset" class="danger">重置（恢复 0）</button>
@@ -506,6 +531,17 @@
                 <option value="ink">水墨山水</option>
                 <option value="oscilloscope">电波示波器</option>
               </optgroup>
+              <optgroup label="实拍背景">
+                <option value="bg-sunset">海岸日落</option>
+                <option value="bg-smoke">黑雾烟场</option>
+                <option value="bg-film">胶片旧梦</option>
+                <option value="bg-rock">红黑摇滚</option>
+                <option value="bg-ink">水墨白雾</option>
+              </optgroup>
+              <optgroup label="程序化背景">
+                <option value="neon-orb">霓虹光球</option>
+                <option value="starfield">星空暗夜</option>
+              </optgroup>
             </select>
             <div id="bgImageControls" class="hidden">
               <input type="file" id="bgImageFile" accept="image/jpeg,image/png,image/webp" />
@@ -524,13 +560,14 @@
             <label>背景色</label>
             <input type="color" id="bgColor" value="#0b0c10" />
           </div>
-          <div class="section">
+          <div class="section" data-preset-hidden>
             <div class="section-title">歌词文字</div>
             <label>字体（请选择可商用免费字体）</label>
             <select id="fontFamily">
               <optgroup label="开源可商用字体">
                 <option value="'Noto Sans SC', 'Source Han Sans SC', sans-serif">思源黑体 / Noto Sans SC</option>
                 <option value="'Noto Serif SC', 'Source Han Serif SC', serif">思源宋体 / Noto Serif SC</option>
+                <option value="'Noto Sans Rounded SC', 'Yuanti SC', sans-serif">思源圆体 / Noto Sans Rounded SC</option>
                 <option value="'LXGW WenKai', serif">霞鹜文楷（开源可商用）</option>
                 <option value="'ZCOOL XiaoWei', sans-serif">站酷小薇体（免费商用）</option>
                 <option value="'ZCOOL QingKe HuangYou', sans-serif">站酷庆科黄油体（免费商用）</option>
@@ -577,28 +614,36 @@
           </div>
           <div class="section">
             <div class="section-title">动画</div>
+            <div data-preset-hidden>
             <label>入场动画</label>
             <select id="animIn">
               <option value="fade">淡入</option>
               <option value="slideUp">上滑</option>
               <option value="slideDown">下滑</option>
+              <option value="slideLeft">左滑</option>
+              <option value="slideRight">右滑</option>
               <option value="scale">缩放</option>
+              <option value="elastic">弹性弹出</option>
             </select>
             <label>停留效果</label>
             <select id="animHold">
               <option value="none">无</option>
               <option value="pulse">轻微脉冲</option>
               <option value="bounce">弹跳</option>
+              <option value="shimmer">微光闪烁</option>
             </select>
             <label>退场动画</label>
             <select id="animOut">
               <option value="fade">淡出</option>
               <option value="slideUp">上滑</option>
               <option value="slideDown">下滑</option>
+              <option value="slideLeft">左滑</option>
+              <option value="slideRight">右滑</option>
               <option value="scale">缩放</option>
             </select>
             <label>动画强度</label>
             <input type="range" id="animIntensity" min="0" max="100" value="50" />
+            </div>
             <label>歌词显示模式</label>
             <select id="lyricsDisplayMode">
               <option value="single">单行居中</option>
@@ -606,6 +651,86 @@
               <option value="scrollUp">逐行上滚</option>
               <option value="scrollLeft">横向滚动</option>
             </select>
+            <label>字幕风格预设</label>
+            <select id="subtitlePreset">
+              <option value="default">自定义（使用下方样式）</option>
+              <optgroup label="经典横排">
+                <option value="effect1">三行滚动 · 黑体描边</option>
+                <option value="effect2">整屏倾斜 · 绿色高亮</option>
+                <option value="effect3">黄色宋体 · 经典复古</option>
+                <option value="effect4">发光圆体 · 白色光晕</option>
+                <option value="effect5">飘逸行书 · 天蓝发光</option>
+              </optgroup>
+              <optgroup label="国风竖排系列">
+                <option value="effect0">国风竖排 · 大字背景</option>
+                <option value="effect6">古卷右起 · 单列印章</option>
+                <option value="effect7">双栏对仗 · 对联竖排</option>
+                <option value="effect8">竖排带注 · 古籍批注</option>
+                <option value="effect9">竖排瀑布 · 多列流</option>
+                <option value="effect16">竖排水墨 · 晕染飞溅</option>
+                <option value="effect17">竖排印章 · 朱泥白文</option>
+                <option value="effect18">竖排竹简 · 流光展开</option>
+              </optgroup>
+              <optgroup label="LiveHouse 系列">
+                <option value="effect10">逐字呼吸 · 经典浮现</option>
+                <option value="effect11">关键词爆裂 · 高潮段落</option>
+                <option value="effect12">光晕拖影 · 流光跟随</option>
+                <option value="effect13">副歌放大 · 旋转爆发</option>
+                <option value="effect14">节拍卡点 · 鼓点炸开</option>
+                <option value="effect15">双行错位 · 呼吸留白</option>
+                <option value="effect19">卡拉OK · 逐字填充</option>
+                <option value="effect20">全屏粒子 · 爆裂飞散</option>
+                <option value="effect21">底栏进度 · 节拍光柱</option>
+              </optgroup>
+            </select>
+            <div id="presetTuning" class="preset-tuning" style="display:none;">
+              <div class="preset-tuning-title">预置微调</div>
+              <label>预设字体</label>
+              <select id="presetFont">
+                <option value="auto">使用预设默认字体</option>
+                <option value="'Noto Sans SC', sans-serif">思源黑体</option>
+                <option value="'Noto Serif SC', serif">思源宋体</option>
+                <option value="'Noto Sans Rounded SC', sans-serif">思源圆体</option>
+                <option value="'LXGW WenKai', serif">霞鹜文楷</option>
+                <option value="'ZCOOL XiaoWei', serif">站酷小薇</option>
+                <option value="'ZCOOL QingKe HuangYou', sans-serif">站酷庆科黄油体</option>
+                <option value="'Ma Shan Zheng', cursive">马善政书法</option>
+                <option value="'Zhi Mang Xing', cursive">志莽行书</option>
+                <option value="'Long Cang', cursive">龙苍书法</option>
+                <option value="'Liu Jian Mao Cao', cursive">刘建毛笔草书</option>
+              </select>
+              <label>水平位置 <span id="presetPosXLabel">50%</span></label>
+              <input type="range" id="presetPosX" min="0" max="100" value="50" />
+              <label>垂直位置 <span id="presetPosYLabel">50%</span></label>
+              <input type="range" id="presetPosY" min="0" max="100" value="50" />
+              <label>不透明度 <span id="presetOpacityLabel">100%</span></label>
+              <input type="range" id="presetOpacity" min="0" max="100" value="100" />
+              <label>主色调</label>
+              <input type="color" id="presetColor" value="#ffffff" />
+              <div class="preset-tuning-title" style="margin-top:10px;">展示范围</div>
+              <label>字幕画面大小 <span id="presetCanvasSizeLabel">80%</span></label>
+              <input type="range" id="presetCanvasSize" min="30" max="100" value="80" />
+              <label>字体自动排列</label>
+              <select id="presetAutoFit">
+                <option value="true">开启（按设计自动排列）</option>
+                <option value="false">关闭（仅缩放字号）</option>
+              </select>
+              <label>字号微调 <span id="presetScaleLabel">100%</span></label>
+              <input type="range" id="presetScale" min="30" max="200" value="100" />
+              <label>入场时长 <span id="presetDurInLabel">0.4s</span></label>
+              <input type="range" id="presetDurIn" min="0.1" max="2.0" step="0.1" value="0.4" />
+              <label>退场时长 <span id="presetDurOutLabel">0.4s</span></label>
+              <input type="range" id="presetDurOut" min="0.1" max="2.0" step="0.1" value="0.4" />
+              <label>停留动效</label>
+              <select id="presetHold">
+                <option value="none">无</option>
+                <option value="breath">呼吸缩放</option>
+                <option value="pulse">光晕脉冲</option>
+              </select>
+              <label>循环周期 <span id="presetCycleLabel">1.6s</span></label>
+              <input type="range" id="presetCycle" min="0.5" max="4.0" step="0.1" value="1.6" />
+            </div>
+            <div data-preset-hidden>
             <label>滚动速度</label>
             <input type="range" id="scrollSpeed" min="10" max="200" value="80" />
             <label>文字方向</label>
@@ -615,6 +740,7 @@
               <option value="rotate90">旋转 90°</option>
               <option value="rotate270">旋转 -90°</option>
             </select>
+            </div>
           </div>
         </div>
       </div>
@@ -734,13 +860,65 @@
       animOut: 'fade',
       animIntensity: 0.5,
       lyricsDisplayMode: 'single',
+      subtitlePreset: 'default',
       scrollSpeed: 80,
-      textDirection: 'horizontal'
+      textDirection: 'horizontal',
+      // 预置微调（仅对字幕风格预设生效）
+      presetPosX: 50,        // 水平位置 0-100（百分比）
+      presetPosY: 50,        // 垂直位置 0-100（百分比）
+      presetScale: 100,      // 大小缩放 30-200（百分比）
+      presetColor: '#ffffff',// 主色调
+      presetOpacity: 100,    // 不透明度 0-100（百分比）
+      presetFont: 'auto',    // 预设字体（auto 表示使用预设默认字体）
+      // 展示范围（动效生命周期）
+      presetDurIn: 0.4,      // 入场时长（秒）0.1-2.0
+      presetDurOut: 0.4,     // 退场时长（秒）0.1-2.0
+      presetHold: 'breath',  // 停留动效类型：none/breath/pulse
+      presetCycle: 1.6,      // 循环周期（秒），用于呼吸/脉冲频率
+      // 字幕画面大小（整体渲染区域 + 字体自动排列）
+      presetCanvasSize: 80,  // 字幕画面大小 30-100（占屏幕百分比）
+      presetAutoFit: true    // 字体自动排列开关
     },
     isExporting: false
   };
 
   let dragState = null; // { lyric, mode, side, startX, startStart, startEnd }
+
+  // ===================== BACKGROUND RESOURCES =====================
+  const BG_LOOPS = {
+    'bg-sunset':  { type: 'image', src: 'vj-backgrounds/sunset-coast.png', motion: 'coast',  overlay: [0.06, 0.22], pos: '50% 52%' },
+    'bg-smoke':   { type: 'video', src: 'vj-backgrounds/smoke-loop.mp4',  fallback: 'vj-backgrounds/smoke-noir.png', motion: 'smoke', overlay: [0.04, 0.18] },
+    'bg-film':    { type: 'image', src: 'vj-backgrounds/film-grain.png',  motion: 'film',  overlay: [0.08, 0.24], pos: '50% 50%' },
+    'bg-rock':    { type: 'video', src: 'vj-backgrounds/guitar-loop.mp4', fallback: 'vj-backgrounds/red-rock.png',  motion: 'rock',  overlay: [0.08, 0.24], pos: '42% 50%' },
+    'bg-ink':     { type: 'image', src: 'vj-backgrounds/ink-mist.png',    motion: 'ink',   overlay: [0.02, 0.10], pos: '50% 50%' },
+  };
+  const bgImageCache = {};
+  const bgVideoCache = {};
+  function getBgImage(src) {
+    if (!bgImageCache[src]) {
+      const img = new Image();
+      img.decoding = 'async';
+      img.src = src;
+      bgImageCache[src] = img;
+    }
+    return bgImageCache[src];
+  }
+  function getBgVideo(src) {
+    if (!bgVideoCache[src]) {
+      const v = document.createElement('video');
+      v.src = src; v.muted = true; v.loop = true; v.playsInline = true;
+      v.preload = 'auto';
+      v.play().catch(() => {});
+      bgVideoCache[src] = v;
+    }
+    return bgVideoCache[src];
+  }
+  function preloadBgResources() {
+    Object.values(BG_LOOPS).forEach(lp => {
+      if (lp.type === 'image') getBgImage(lp.src);
+      if (lp.fallback) getBgImage(lp.fallback);
+    });
+  }
 
   const DEMO_LYRICS = [
     { id: 'l1', text: '欢迎来到 Lyrical VJ Studio', start: 1.0, end: 3.5 },
@@ -765,6 +943,7 @@
     modeDemo: document.getElementById('modeDemo'),
     modeFull: document.getElementById('modeFull'),
     btnExport: document.getElementById('btnExport'),
+    btnThemeToggle: document.getElementById('btnThemeToggle'),
     audioFile: document.getElementById('audioFile'),
     audioFileName: document.getElementById('audioFileName'),
     btnDemo: document.getElementById('btnDemo'),
@@ -812,6 +991,24 @@
     animOut: document.getElementById('animOut'),
     animIntensity: document.getElementById('animIntensity'),
     lyricsDisplayMode: document.getElementById('lyricsDisplayMode'),
+    subtitlePreset: document.getElementById('subtitlePreset'),
+    presetTuning: document.getElementById('presetTuning'),
+    presetPosX: document.getElementById('presetPosX'),
+    presetPosXLabel: document.getElementById('presetPosXLabel'),
+    presetPosY: document.getElementById('presetPosY'),
+    presetPosYLabel: document.getElementById('presetPosYLabel'),
+    presetScale: document.getElementById('presetScale'),
+    presetScaleLabel: document.getElementById('presetScaleLabel'),
+    presetOpacity: document.getElementById('presetOpacity'),
+    presetOpacityLabel: document.getElementById('presetOpacityLabel'),
+    presetColor: document.getElementById('presetColor'),
+    presetFont: document.getElementById('presetFont'),
+    presetCanvasSize: document.getElementById('presetCanvasSize'),
+    presetAutoFit: document.getElementById('presetAutoFit'),
+    presetDurIn: document.getElementById('presetDurIn'),
+    presetDurOut: document.getElementById('presetDurOut'),
+    presetHold: document.getElementById('presetHold'),
+    presetCycle: document.getElementById('presetCycle'),
     scrollSpeed: document.getElementById('scrollSpeed'),
     textDirection: document.getElementById('textDirection'),
     globalOffset: document.getElementById('globalOffset'),
@@ -822,6 +1019,8 @@
     btnApplyOnlineLyrics: document.getElementById('btnApplyOnlineLyrics'),
     btnClearOnlineLyrics: document.getElementById('btnClearOnlineLyrics'),
     onlineUrl: document.getElementById('onlineUrl'),
+    btnFetchUrl: document.getElementById('btnFetchUrl'),
+    fetchStatus: document.getElementById('fetchStatus'),
     alignSensitivity: document.getElementById('alignSensitivity'),
     btnPlay: document.getElementById('btnPlay'),
     btnStop: document.getElementById('btnStop'),
@@ -865,60 +1064,88 @@
   function parseLrc(text) {
     const lines = text.split(/\r?\n/);
     const out = [];
-    // Standard LRC: [mm:ss.xx]text   OR   inline word-level: [00:01.00]字[00:01.20]字
     const tagRe = /\[(\d+):(\d+(?:\.\d+)?)\]/g;
-    for (const line of lines) {
-      if (!line.trim()) continue;
-      // Skip metadata tags
-      if (/^\[[a-z]+:/i.test(line.trim())) continue;
-      // Find all timestamps on this line
+    const metaRe = /^\s*\[(?:ti|ar|al|by|offset|size|re|ve)\s*:/i;
+    let audioDur = state.audioDuration || 0;
+
+    for (const rawLine of lines) {
+      if (!rawLine.trim()) continue;
+      const line = rawLine.trim();
+
+      if (metaRe.test(line)) continue;
+
       tagRe.lastIndex = 0;
       const stamps = [];
       let m;
       while ((m = tagRe.exec(line)) !== null) {
-        stamps.push({ t: parseInt(m[1],10) * 60 + parseFloat(m[2]), idx: m.index, end: m.index + m[0].length });
+        const sec = parseInt(m[1], 10) * 60 + parseFloat(m[2]);
+        stamps.push({ t: sec, idx: m.index, end: m.index + m[0].length });
       }
+
       if (!stamps.length) {
-        // Plain text line, no timestamp
         const cleaned = line.trim();
-        if (cleaned) out.push({ id: uid(), text: cleaned, start: 0, end: 0 });
+        if (cleaned && !/^\[[\d:.]+\]/.test(cleaned)) {
+          out.push({ id: uid(), text: cleaned, start: 0, end: 0, _raw: true });
+        }
         continue;
       }
-      // Multiple timestamps on one line = inline word-level LRC (NetEase style)
+
       if (stamps.length > 1) {
         for (let i = 0; i < stamps.length; i++) {
           const s = stamps[i];
           const textStart = s.end;
           const textEnd = i + 1 < stamps.length ? stamps[i+1].idx : line.length;
           const word = line.slice(textStart, textEnd).trim();
-          if (word) out.push({ id: uid(), text: word, start: s.t, end: s.t + 0.5 });
+          if (word) {
+            const nextT = i + 1 < stamps.length ? stamps[i+1].t : s.t + 0.5;
+            out.push({ id: uid(), text: word, start: s.t, end: nextT });
+          }
         }
       } else {
-        // Standard single-timestamp LRC line
         const text = line.slice(stamps[0].end).trim();
-        if (text) out.push({ id: uid(), text, start: stamps[0].t, end: stamps[0].t + 3 });
+        if (text) {
+          const nextStart = findNextTimestamp(stamps[0].t, lines, tagRe);
+          const endT = nextStart > stamps[0].t ? nextStart : (audioDur > 0 ? audioDur : stamps[0].t + 3);
+          out.push({ id: uid(), text, start: stamps[0].t, end: endT });
+        }
       }
     }
-    // Merge consecutive word-level entries into lines
+
     const merged = mergeWordLevelLines(out);
-    // Sort and auto-fill end times
     merged.sort((a,b) => a.start - b.start);
     for (let i = 0; i < merged.length; i++) {
-      if (i + 1 < merged.length) merged[i].end = Math.max(merged[i].end, merged[i+1].start);
-      else if (state.audioDuration) merged[i].end = Math.max(merged[i].end, state.audioDuration);
+      if (merged[i]._raw) {
+        merged[i].start = 0;
+        merged[i].end = audioDur || 3;
+      } else if (i + 1 < merged.length) {
+        merged[i].end = Math.max(merged[i].end, merged[i+1].start);
+      } else if (audioDur > 0) {
+        merged[i].end = Math.max(merged[i].end, audioDur);
+      }
+      delete merged[i]._raw;
     }
     return merged;
   }
+  function findNextTimestamp(afterT, lines, tagRe) {
+    for (const line of lines) {
+      tagRe.lastIndex = 0;
+      let m;
+      while ((m = tagRe.exec(line)) !== null) {
+        const sec = parseInt(m[1], 10) * 60 + parseFloat(m[2]);
+        if (sec > afterT) return sec;
+      }
+    }
+    return 0;
+  }
   function mergeWordLevelLines(entries) {
-    // If entries are very short (word-level), merge ones with very small gaps into lines
     if (entries.length <= 1) return entries;
     const avgLen = entries.reduce((s,e) => s + e.text.length, 0) / entries.length;
-    if (avgLen > 6) return entries; // already line-level
+    if (avgLen > 6) return entries;
     const merged = [];
     let cur = null;
-    const gapThreshold = 1.2; // seconds between starts = new line
+    const gapThreshold = 2.5;
     for (const e of entries) {
-      if (!cur || e.start - cur.start > gapThreshold) {
+      if (!cur || e.start - cur.start > gapThreshold || e.text.length > 4) {
         if (cur) merged.push(cur);
         cur = { id: uid(), text: e.text, start: e.start, end: e.end };
       } else {
@@ -1076,9 +1303,17 @@
     try {
       const ab = await fetch(audioEl.src).then(r => r.arrayBuffer());
       const lyrics = parseId3Lyrics(ab);
-      if (!lyrics) { toast('该音频未内嵌歌词'); return; }
-      els.lyricsInput.value = lyrics;
+      if (!lyrics || !lyrics.trim()) { toast('该 MP3 未内嵌歌词（USLT/SYLT 标签为空）'); return; }
+      els.lyricsInput.value = lyrics.trim();
       state.lyrics = parseLrc(lyrics);
+      if (state.lyrics.length === 0) {
+        const lines = lyrics.split(/\r?\n/).filter(l => l.trim() && !/^\[/.test(l.trim()));
+        if (lines.length) {
+          const dur = state.audioDuration || 30;
+          const gap = dur / lines.length;
+          state.lyrics = lines.map((t, i) => ({ id: uid(), text: t.trim(), start: i * gap, end: (i+1)*gap }));
+        }
+      }
       updateLyricsInput();
       renderTimeline();
       toast(`已提取 ${state.lyrics.length} 行内嵌歌词`);
@@ -1087,40 +1322,61 @@
       toast('提取失败：' + err.message);
     }
   }
+  function setMode(m) {
+    state.mode = m;
+    els.modeDemo.classList.toggle('active', m === 'demo');
+    els.modeFull.classList.toggle('active', m === 'full');
+    els.apiSection.style.display = m === 'full' ? 'block' : 'none';
+  }
   async function handlePairImport(files) {
     let audioFile = null, lrcFile = null;
     for (const f of files) {
-      if (f.type.startsWith('audio/') || /\.(mp3|wav|ogg|m4a|flac|aac)$/i.test(f.name)) audioFile = f;
-      else if (/\.lrc$/i.test(f.name)) lrcFile = f;
-      else if (/\.txt$/i.test(f.name) && !lrcFile) lrcFile = f;
+      const name = f.name.toLowerCase();
+      if (f.type.startsWith('audio/') || /\.(mp3|wav|ogg|m4a|flac|aac)$/i.test(name)) {
+        if (!audioFile || name.endsWith('.mp3')) audioFile = f;
+      }
+      else if (/\.lrc$/i.test(name)) lrcFile = f;
+      else if (/\.txt$/i.test(name) && !lrcFile) lrcFile = f;
     }
-    if (!audioFile) { toast('请至少选择一个音频文件'); return; }
-    // Load audio
+    if (!audioFile) { toast('请至少选择一个音频文件（支持 MP3/WAV/OGG/M4A/FLAC/AAC）'); return; }
     const url = URL.createObjectURL(audioFile);
     setAudioUrl(url, audioFile.name);
     setMode('full');
-    // Wait for metadata
     await new Promise(resolve => {
-      const check = () => { if (state.audioDuration > 0) resolve(); else setTimeout(check, 100); };
-      setTimeout(() => resolve(), 3000);
+      let waited = 0;
+      const check = () => {
+        if (state.audioDuration > 0 || waited > 5000) resolve();
+        else { waited += 100; setTimeout(check, 100); }
+      };
       check();
     });
     let lrcText = null;
     if (lrcFile) {
       lrcText = await lrcFile.text();
     } else {
-      // Try to extract from MP3 ID3
-      const ab = await audioFile.arrayBuffer();
-      lrcText = parseId3Lyrics(ab);
+      try {
+        const ab = await audioFile.arrayBuffer();
+        lrcText = parseId3Lyrics(ab);
+      } catch (e) { console.warn('ID3 extraction failed:', e); }
     }
-    if (lrcText) {
-      els.lyricsInput.value = lrcText;
+    if (lrcText && lrcText.trim()) {
+      els.lyricsInput.value = lrcText.trim();
       state.lyrics = parseLrc(lrcText);
+      if (state.lyrics.length === 0) {
+        const lines = lrcText.split(/\r?\n/).filter(l => l.trim());
+        const dur = state.audioDuration || 30;
+        const gap = dur / Math.max(1, lines.length);
+        state.lyrics = lines.map((t, i) => ({ id: uid(), text: t.trim(), start: i * gap, end: (i + 1) * gap }));
+      }
       updateLyricsInput();
       renderTimeline();
-      toast(`导入完成：${state.lyrics.length} 行歌词`);
+      toast(`导入成功：${state.lyrics.length} 行歌词`);
     } else {
-      toast('音频已加载，未找到歌词。请拖入 .lrc 文件或使用自动对齐');
+      state.lyrics = [];
+      els.lyricsInput.value = '';
+      updateLyricsInput();
+      renderTimeline();
+      toast('音频已加载。未找到内嵌歌词，请拖入 .lrc 文件或使用"自动对齐"功能');
     }
     els.pairFileName.textContent = `已导入：${audioFile.name}${lrcFile ? ' + ' + lrcFile.name : ''}`;
   }
@@ -1128,6 +1384,65 @@
     els.toast.textContent = msg;
     els.toast.classList.add('show');
     setTimeout(() => els.toast.classList.remove('show'), 2500);
+  }
+
+  // ===================== ONLINE LYRICS FETCH =====================
+  async function fetchLyricsFromUrl(url) {
+    const songIdMatch = url.match(/[?&]id=(\d+)/) || url.match(/\/song\/(\d+)/) || url.match(/\/(\d+)\.htm/);
+    if (!songIdMatch) {
+      return tryGenericFetch(url);
+    }
+    const songId = songIdMatch[1];
+    const apis = [
+      { name: '网易云音乐', url: `https://netease-api-eta.vercel.app/api/song/lyric?id=${songId}&kv=1009&lv=1&nosv=1`, parser: parseNetEaseLyric },
+      { name: '网易云备用', url: `https://music-api-43j.pages.dev/api/lyric?id=${songId}`, parser: parseNetEaseLyric },
+    ];
+    for (const api of apis) {
+      try {
+        const resp = await fetch(api.url, { headers: { 'Accept': 'application/json' } });
+        if (!resp.ok) continue;
+        const data = await resp.json();
+        const lrc = api.parser(data);
+        if (lrc && lrc.length > 10) return lrc;
+      } catch (e) { /* try next */ }
+    }
+    return tryGenericFetch(url);
+  }
+  function parseNetEaseLyric(data) {
+    let lrcObj = null;
+    if (data.lrc && data.lrc.lyric) lrcObj = data.lrc;
+    else if (data.result && data.result.lyric) lrcObj = { lyric: data.result.lyric };
+    else if (data.lyric) {
+      return typeof data.lyric === 'string' ? data.lyric : null;
+    }
+    if (lrcObj && lrcObj.lyric) return lrcObj.lyric;
+    return null;
+  }
+  async function tryGenericFetch(url) {
+    const proxies = [
+      `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+      `https://corsproxy.io/?${encodeURIComponent(url)}`,
+      `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(url)}`,
+    ];
+    for (const proxy of proxies) {
+      try {
+        const resp = await fetch(proxy);
+        if (!resp.ok) continue;
+        const text = await resp.text();
+        const lyricMatch = text.match(/<div[^>]*class="[^"]*lyric[^"]*"[^>]*>([\s\S]*?)<\/div>/i)
+                        || text.match(/<td[^>]*class="[^"]*lyric[^"]*"[^>]*>([\s\S]*?)<\/td>/i);
+        if (lyricMatch) {
+          const raw = lyricMatch[1].replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '');
+          if (raw.trim()) return raw.trim();
+        }
+        const plainText = text.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&[a-z]+;/g, '');
+        if (plainText.length > 50 && /\[\d+:\d+/.test(plainText)) {
+          const lines = plainText.split(/\r?\n/).filter(l => /\[\d+:\d+/.test(l));
+          if (lines.length > 5) return lines.join('\n');
+        }
+      } catch (e) { /* try next */ }
+    }
+    return null;
   }
 
   // ===================== AUTO ALIGN (NetEase/QQ Music lyrics) =====================
@@ -1149,7 +1464,6 @@
     return out;
   }
   function detectVocalOnsets(audioBuffer, sensitivity) {
-    // Mono mix
     const sr = audioBuffer.sampleRate;
     const duration = audioBuffer.duration;
     const ch = audioBuffer.numberOfChannels;
@@ -1161,77 +1475,117 @@
     }
     for (let i = 0; i < len; i++) mono[i] /= ch;
 
-    const frameSize = Math.floor(sr * 0.02); // 20ms
+    const frameSize = Math.floor(sr * 0.04);
     const hop = Math.floor(frameSize / 2);
     const frames = Math.floor((len - frameSize) / hop);
     const energy = new Float32Array(frames);
+    const spectralCentroid = new Float32Array(frames);
     let maxE = 0;
     for (let f = 0; f < frames; f++) {
-      let sum = 0;
+      let sum = 0, weightedSum = 0;
       for (let i = 0; i < frameSize; i++) {
         const s = mono[f * hop + i];
-        sum += s * s;
+        const e = s * s;
+        sum += e;
+        weightedSum += e * i;
       }
       energy[f] = sum / frameSize;
       if (energy[f] > maxE) maxE = energy[f];
+      spectralCentroid[f] = sum > 0 ? (weightedSum / sum) / frameSize : 0;
     }
     if (maxE < 1e-10) return [];
 
-    // spectral flux-ish: positive difference between log energies
     const flux = new Float32Array(frames);
-    for (let i = 1; i < frames; i++) {
+    for (let i = 2; i < frames - 2; i++) {
       const diff = Math.log(energy[i] / maxE + 1e-12) - Math.log(energy[i-1] / maxE + 1e-12);
       flux[i] = Math.max(0, diff);
     }
+    const smoothFlux = new Float32Array(frames);
+    for (let i = 2; i < frames - 2; i++) {
+      smoothFlux[i] = (flux[i-2] + flux[i-1] + flux[i] + flux[i+1] + flux[i+2]) / 5;
+    }
 
-    // threshold from sensitivity (10-90)
-    const thresholdRatio = 1 - (sensitivity / 100); // high sensitivity -> low threshold
-    const gate = 0.02 + thresholdRatio * 0.25; // 0.02 ~ 0.27 of max flux
-    const silenceGate = 0.01 + thresholdRatio * 0.08; // relative energy gate
+    const gate = 0.01 + (1 - sensitivity/100) * 0.3;
+    const silenceGate = 0.01 + (1 - sensitivity/100) * 0.1;
+    const centroidBias = 0.3;
 
     const onsets = [];
-    const minGapSec = Math.max(0.3, 1.5 - sensitivity / 60); // 0.3 ~ 1.0s
+    const minGapSec = Math.max(0.25, 1.0 - sensitivity / 80);
     const minGapFrames = Math.floor(minGapSec * sr / hop);
     let lastOnset = -minGapFrames;
-    for (let i = 2; i < frames - 2; i++) {
-      const localMax = flux[i] > flux[i-1] && flux[i] > flux[i-2] && flux[i] > flux[i+1] && flux[i] > flux[i+2];
+
+    for (let i = 5; i < frames - 5; i++) {
+      const localMax = smoothFlux[i] >= smoothFlux[i-1] && smoothFlux[i] >= smoothFlux[i+1]
+                     && smoothFlux[i] >= smoothFlux[i-2] && smoothFlux[i] >= smoothFlux[i+2];
       const loud = energy[i] / maxE > silenceGate;
-      const strong = flux[i] > gate * Math.max(...flux.slice(Math.max(0,i-10), Math.min(frames,i+10)));
+      const threshold = gate * Math.max(
+        smoothFlux[i-5] || smoothFlux[i],
+        smoothFlux[i+5] || smoothFlux[i]
+      );
+      const strong = smoothFlux[i] > threshold;
+      const highCentroid = spectralCentroid[i] > 0.15;
+
       if (localMax && loud && strong && i - lastOnset > minGapFrames) {
-        onsets.push((i * hop) / sr);
-        lastOnset = i;
+        if (highCentroid || spectralCentroid[i] > 0.05 + centroidBias * (sensitivity/100)) {
+          onsets.push((i * hop) / sr);
+          lastOnset = i;
+        } else if (sensitivity > 60) {
+          onsets.push((i * hop) / sr);
+          lastOnset = i;
+        }
       }
     }
-    return onsets;
+    if (onsets.length < 5 && sensitivity > 50) {
+      for (let i = 3; i < frames - 3; i++) {
+        const localMax = smoothFlux[i] > smoothFlux[i-1] && smoothFlux[i] > smoothFlux[i+1] && smoothFlux[i] > smoothFlux[i-2];
+        const loud = energy[i] / maxE > silenceGate * 0.5;
+        if (localMax && loud && i - lastOnset > minGapFrames) {
+          onsets.push((i * hop) / sr);
+          lastOnset = i;
+        }
+      }
+    }
+    return onsets.sort((a,b) => a - b);
   }
   function autoAlignLyrics(lines, onsets, duration) {
     if (!lines.length) return [];
     const result = lines.map((text, idx) => ({ id: uid(), text, start: 0, end: 0 }));
     if (!onsets.length) {
-      // Even distribution fallback
       const gap = duration / Math.max(1, lines.length);
-      result.forEach((l, i) => { l.start = i * gap; l.end = (i + 1) * gap; });
+      result.forEach((l, i) => { l.start = i * gap; l.end = Math.min(duration, (i + 1) * gap); });
       return result;
     }
-    // Match each line to a unique onset using DP-ish greedy
-    let onsetIdx = 0;
-    const minLineDur = 1.2;
-    for (let i = 0; i < result.length; i++) {
-      const target = (i / Math.max(1, result.length - 1)) * duration * 0.95;
-      // find nearest onset not too early
-      while (onsetIdx < onsets.length - 1 && Math.abs(onsets[onsetIdx + 1] - target) < Math.abs(onsets[onsetIdx] - target)) {
-        onsetIdx++;
+    const vocalOnsets = onsets.filter(t => t > duration * 0.05 && t < duration * 0.95);
+    const candidateOnsets = vocalOnsets.length >= lines.length
+      ? selectEvenlySpaced(vocalOnsets, lines.length)
+      : vocalOnsets;
+    if (candidateOnsets.length >= lines.length) {
+      for (let i = 0; i < result.length; i++) {
+        result[i].start = clamp(candidateOnsets[i], 0, duration - 0.5);
       }
-      result[i].start = clamp(onsets[onsetIdx], 0, duration - 0.5);
-      onsetIdx = Math.min(onsetIdx + 1, onsets.length - 1);
+    } else {
+      const firstOnset = candidateOnsets[0] || 0;
+      const lastOnset = candidateOnsets[candidateOnsets.length - 1] || duration;
+      for (let i = 0; i < result.length; i++) {
+        const ratio = i / Math.max(1, result.length - 1);
+        result[i].start = clamp(firstOnset + ratio * (lastOnset - firstOnset), 0, duration - 0.5);
+      }
     }
-    // Fill end times
     for (let i = 0; i < result.length; i++) {
       if (i + 1 < result.length) {
-        result[i].end = Math.max(result[i].start + minLineDur, result[i+1].start);
+        result[i].end = Math.max(result[i].start + 0.8, result[i+1].start);
       } else {
-        result[i].end = Math.max(result[i].start + minLineDur, duration);
+        result[i].end = Math.max(result[i].start + 1.5, duration);
       }
+    }
+    return result;
+  }
+  function selectEvenlySpaced(arr, n) {
+    if (arr.length <= n) return arr.slice(0, n);
+    const result = [];
+    const step = (arr.length - 1) / (n - 1);
+    for (let i = 0; i < n; i++) {
+      result.push(arr[Math.round(i * step)]);
     }
     return result;
   }
@@ -1240,7 +1594,10 @@
     const rawText = els.lyricsInput.value;
     const lines = cleanPlatformLyrics(rawText);
     if (!lines.length) { toast('未找到有效歌词，请粘贴网易云/QQ音乐歌词文本'); return; }
-    toast('正在分析音频节拍，请稍候...');
+
+    const hasTimestamps = /\[\d+:\d+(?:\.\d+)?\]/.test(rawText);
+    toast('正在分析音频，请稍候...');
+
     try {
       initAudioContext();
       const blob = await fetch(audioEl.src).then(r => r.blob());
@@ -1248,14 +1605,29 @@
       const audioBuffer = await audioCtx.decodeAudioData(ab);
       const duration = audioBuffer.duration;
       state.audioDuration = duration;
+
+      if (hasTimestamps) {
+        const parsed = parseLrc(rawText);
+        if (parsed.length > 0) {
+          const lastEnd = parsed[parsed.length - 1].end;
+          const scaleFactor = lastEnd > 0 ? duration / lastEnd : 1;
+          parsed.forEach(l => {
+            l.start *= scaleFactor;
+            l.end *= scaleFactor;
+            l.start = Math.max(0, l.start);
+            l.end = Math.min(duration, Math.max(l.end, l.start + 0.3));
+          });
+          state.lyrics = parsed;
+          updateLyricsInput();
+          renderTimeline();
+          toast(`解析 ${parsed.length} 行歌词（使用原始时间戳，已适配歌曲时长）`);
+          return;
+        }
+      }
+
       const sensitivity = parseFloat(els.alignSensitivity.value);
       const onsets = detectVocalOnsets(audioBuffer, sensitivity);
       state.lyrics = autoAlignLyrics(lines, onsets, duration);
-      // Apply global offset if slider is non-zero
-      const offsetMs = parseInt(els.globalOffset.value) || 0;
-      if (offsetMs !== 0) {
-        applyGlobalLyricOffset(offsetMs / 1000);
-      }
       updateLyricsInput();
       renderTimeline();
       updateTimeDisplay();
@@ -1663,6 +2035,12 @@
         ctx.shadowBlur = 10;
         ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
       }
+    } else if (theme.startsWith('bg-')) {
+      drawPhotoBg(time, w, h, theme);
+    } else if (theme === 'neon-orb') {
+      drawNeonOrbBg(time, w, h);
+    } else if (theme === 'starfield') {
+      drawStarfieldBg(time, w, h);
     }
     ctx.restore();
   }
@@ -1699,13 +2077,2369 @@
     ctx.fillStyle = grad; ctx.fillRect(0,0,w,h);
     ctx.restore();
   }
+
+  // ===================== PHOTO/VIDEO BACKGROUND THEMES =====================
+  function drawPhotoBg(time, w, h, loopKey) {
+    const lp = BG_LOOPS[loopKey];
+    if (!lp) return;
+    ctx.save();
+    // Draw base image or video
+    let source = null;
+    if (lp.type === 'video') {
+      const v = getBgVideo(lp.src);
+      if (v.readyState >= 2 && v.videoWidth > 0) {
+        source = v;
+        // Sync video time with audio
+        if (state.isPlaying && v.duration > 0) {
+          const target = (state.currentTime % v.duration);
+          if (Math.abs(v.currentTime - target) > 0.3) v.currentTime = target;
+        }
+      } else if (lp.fallback) {
+        const img = getBgImage(lp.fallback);
+        if (img.complete) source = img;
+      }
+    } else {
+      const img = getBgImage(lp.src);
+      if (img.complete && img.naturalWidth > 0) source = img;
+    }
+    if (source) {
+      drawCoverSource(ctx, source, source.width || source.videoWidth, source.height || source.videoHeight, w, h, lp.pos);
+    } else {
+      ctx.fillStyle = '#0a0a0f'; ctx.fillRect(0,0,w,h);
+    }
+    // Overlay gradient
+    const [ot, ob] = lp.overlay;
+    const og = ctx.createLinearGradient(0,0,0,h);
+    og.addColorStop(0, `rgba(0,0,0,${ot})`);
+    og.addColorStop(0.5, 'rgba(0,0,0,0)');
+    og.addColorStop(1, `rgba(0,0,0,${ob})`);
+    ctx.fillStyle = og; ctx.fillRect(0,0,w,h);
+    // Motion layer
+    drawMotionLayer(time, w, h, lp.motion);
+    // Vignette
+    const vg = ctx.createRadialGradient(w/2,h/2,0,w/2,h/2,Math.max(w,h)/1.3);
+    vg.addColorStop(0, 'rgba(0,0,0,0)');
+    vg.addColorStop(1, 'rgba(0,0,0,0.3)');
+    ctx.fillStyle = vg; ctx.fillRect(0,0,w,h);
+    ctx.restore();
+  }
+  function drawCoverSource(ctx, src, sw, sh, w, h, pos) {
+    const scale = Math.max(w/sw, h/sh);
+    const dw = sw * scale, dh = sh * scale;
+    let dx = (w - dw) / 2, dy = (h - dh) / 2;
+    if (pos) {
+      const [px, py] = pos.split(/\s+/).map(s => parseFloat(s)/100);
+      dx = w/2 - dw * px;
+      dy = h/2 - dh * py;
+    }
+    ctx.drawImage(src, dx, dy, dw, dh);
+  }
+  function drawMotionLayer(time, w, h, motion) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+    if (motion === 'coast') {
+      // Warm water shimmer
+      const wg = ctx.createLinearGradient(0, h*0.6, 0, h);
+      wg.addColorStop(0, 'rgba(255,180,80,0)');
+      wg.addColorStop(0.5, `rgba(255,180,80,${0.08 + Math.sin(time*0.5)*0.04})`);
+      wg.addColorStop(1, 'rgba(255,140,40,0.15)');
+      ctx.fillStyle = wg; ctx.fillRect(0, h*0.6, w, h*0.4);
+      // Cloud drift
+      for (let i=0;i<3;i++) {
+        const cx = ((time*8 + i*w*0.4) % (w+200)) - 100;
+        const cg = ctx.createRadialGradient(cx, h*0.2, 0, cx, h*0.2, 200);
+        cg.addColorStop(0, 'rgba(255,200,150,0.12)');
+        cg.addColorStop(1, 'rgba(255,200,150,0)');
+        ctx.fillStyle = cg; ctx.fillRect(0, 0, w, h*0.5);
+      }
+    } else if (motion === 'smoke') {
+      // Drifting smoke blobs
+      for (let i=0;i<4;i++) {
+        const phase = i * 1.3;
+        const x = w * (0.2 + 0.6 * (0.5 + Math.sin(time*0.15 + phase) * 0.5));
+        const y = h * (0.3 + 0.4 * (0.5 + Math.cos(time*0.12 + phase) * 0.5));
+        const r = 120 + Math.sin(time*0.2 + i) * 40;
+        const sg = ctx.createRadialGradient(x, y, 0, x, y, r);
+        sg.addColorStop(0, 'rgba(200,200,210,0.15)');
+        sg.addColorStop(1, 'rgba(200,200,210,0)');
+        ctx.fillStyle = sg; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
+      }
+    } else if (motion === 'film') {
+      // Film grain noise
+      const frame = Math.floor(time * 8);
+      for (let i=0;i<120;i++) {
+        const x = ((frame*37 + i*73) % w);
+        const y = ((frame*41 + i*97) % h);
+        const a = 0.04 + ((frame+i) % 7) * 0.02;
+        ctx.fillStyle = `rgba(255,240,200,${a})`;
+        ctx.fillRect(x, y, 2, 2);
+      }
+      // Scratches
+      for (let s=0;s<3;s++) {
+        const x = ((frame*53 + s*217) % w);
+        ctx.strokeStyle = `rgba(255,240,200,${0.06 + (frame%3)*0.03})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x + Math.sin(frame)*10, h); ctx.stroke();
+      }
+    } else if (motion === 'rock') {
+      // Lightning bolts
+      const beat = getAudioEnergy();
+      if (beat > 0.4 || Math.sin(time*4) > 0.7) {
+        ctx.strokeStyle = `rgba(255,200,100,${0.15 + beat*0.3})`;
+        ctx.lineWidth = 2 + beat * 3;
+        ctx.beginPath();
+        const startX = w * (0.3 + Math.sin(time)*0.3);
+        ctx.moveTo(startX, 0);
+        let cy = 0;
+        while (cy < h) {
+          cy += 30 + Math.random() * 40;
+          ctx.lineTo(startX + (Math.random()-0.5)*60, cy);
+        }
+        ctx.stroke();
+      }
+      // Pulse glow
+      const pg = ctx.createRadialGradient(w/2, h/2, 0, w/2, h/2, w*0.4);
+      pg.addColorStop(0, `rgba(255,60,30,${0.06 + beat*0.1})`);
+      pg.addColorStop(1, 'rgba(255,60,30,0)');
+      ctx.fillStyle = pg; ctx.fillRect(0,0,w,h);
+    } else if (motion === 'ink') {
+      // Ink mist drift
+      for (let i=0;i<3;i++) {
+        const phase = i * 2.1;
+        const x = w * (0.3 + 0.4 * Math.sin(time*0.08 + phase));
+        const y = h * (0.4 + 0.2 * Math.cos(time*0.06 + phase));
+        const r = 150 + Math.sin(time*0.1 + i) * 50;
+        const ig = ctx.createRadialGradient(x, y, 0, x, y, r);
+        ig.addColorStop(0, 'rgba(240,235,220,0.18)');
+        ig.addColorStop(1, 'rgba(240,235,220,0)');
+        ctx.fillStyle = ig; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+
+  // ===================== PROCEDURAL NEON ORB BACKGROUND =====================
+  function drawNeonOrbBg(time, w, h) {
+    ctx.save();
+    // Dark purple base
+    const bg = ctx.createLinearGradient(0,0,w,h);
+    bg.addColorStop(0, '#0a0118');
+    bg.addColorStop(0.5, '#1a0428');
+    bg.addColorStop(1, '#0d0220');
+    ctx.fillStyle = bg; ctx.fillRect(0,0,w,h);
+    ctx.globalCompositeOperation = 'screen';
+    // Pink orb
+    const pinkX = w * (0.3 + Math.sin(time*0.15) * 0.15);
+    const pinkY = h * (0.4 + Math.cos(time*0.12) * 0.1);
+    const pinkR = w * 0.25 * (1 + Math.sin(time*0.2) * 0.1);
+    const pinkG = ctx.createRadialGradient(pinkX, pinkY, 0, pinkX, pinkY, pinkR);
+    pinkG.addColorStop(0, 'rgba(255,64,190,0.45)');
+    pinkG.addColorStop(0.4, 'rgba(255,64,190,0.2)');
+    pinkG.addColorStop(1, 'rgba(255,64,190,0)');
+    ctx.fillStyle = pinkG; ctx.beginPath(); ctx.arc(pinkX, pinkY, pinkR, 0, Math.PI*2); ctx.fill();
+    // Blue orb
+    const blueX = w * (0.7 + Math.cos(time*0.18) * 0.15);
+    const blueY = h * (0.6 + Math.sin(time*0.14) * 0.1);
+    const blueR = w * 0.22 * (1 + Math.cos(time*0.22) * 0.1);
+    const blueG = ctx.createRadialGradient(blueX, blueY, 0, blueX, blueY, blueR);
+    blueG.addColorStop(0, 'rgba(42,208,255,0.4)');
+    blueG.addColorStop(0.4, 'rgba(42,208,255,0.15)');
+    blueG.addColorStop(1, 'rgba(42,208,255,0)');
+    ctx.fillStyle = blueG; ctx.beginPath(); ctx.arc(blueX, blueY, blueR, 0, Math.PI*2); ctx.fill();
+    // Soft wave overlay
+    ctx.globalCompositeOperation = 'screen';
+    for (let i=0;i<3;i++) {
+      const y = h * (0.5 + i * 0.12) + Math.sin(time*0.3 + i) * 20;
+      const wg = ctx.createLinearGradient(0, y-30, 0, y+30);
+      wg.addColorStop(0, 'rgba(255,64,190,0)');
+      wg.addColorStop(0.5, `rgba(${i%2?42:255},${i%2?208:64},${i%2?255:190},0.08)`);
+      wg.addColorStop(1, 'rgba(42,208,255,0)');
+      ctx.fillStyle = wg; ctx.fillRect(0, y-30, w, 60);
+    }
+    ctx.restore();
+  }
+
+  // ===================== PROCEDURAL STARFIELD BACKGROUND =====================
+  function drawStarfieldBg(time, w, h) {
+    ctx.save();
+    // Deep space gradient
+    const bg = ctx.createLinearGradient(0,0,0,h);
+    bg.addColorStop(0, '#000308');
+    bg.addColorStop(0.5, '#000a14');
+    bg.addColorStop(1, '#001020');
+    ctx.fillStyle = bg; ctx.fillRect(0,0,w,h);
+    // Large stars (predefined positions for consistency)
+    const largeStars = [
+      [0.12,0.15],[0.85,0.22],[0.45,0.08],[0.67,0.35],[0.23,0.55],
+      [0.78,0.62],[0.33,0.78],[0.56,0.45],[0.92,0.85],[0.08,0.88],
+      [0.50,0.92],[0.72,0.12],[0.28,0.33],[0.63,0.68],[0.40,0.25]
+    ];
+    largeStars.forEach((s, i) => {
+      const tw = Math.sin(time * (0.8 + i*0.1) + i * 2) * 0.5 + 0.5;
+      const x = s[0] * w, y = s[1] * h;
+      const r = 2 + tw * 2.5;
+      const g = ctx.createRadialGradient(x, y, 0, x, y, r * 3);
+      g.addColorStop(0, `rgba(255,255,255,${0.6 + tw*0.4})`);
+      g.addColorStop(0.3, `rgba(200,220,255,${0.3 * tw})`);
+      g.addColorStop(1, 'rgba(200,220,255,0)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r*3, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = `rgba(255,255,255,${0.8 + tw*0.2})`;
+      ctx.beginPath(); ctx.arc(x, y, r*0.5, 0, Math.PI*2); ctx.fill();
+    });
+    // Small stars
+    for (let i=0;i<60;i++) {
+      const tw = Math.sin(time * 2 + i * 1.3) * 0.5 + 0.5;
+      const x = ((i * 37.3) % 100) / 100 * w;
+      const y = ((i * 71.7) % 100) / 100 * h;
+      ctx.fillStyle = `rgba(255,255,255,${0.15 + tw*0.5})`;
+      ctx.fillRect(x, y, 1.5, 1.5);
+    }
+    // Blue stars
+    const blueStars = [[0.15,0.40],[0.60,0.20],[0.80,0.50],[0.25,0.70],[0.90,0.30],[0.50,0.60]];
+    blueStars.forEach((s, i) => {
+      const tw = Math.sin(time * (0.5 + i*0.2) + i * 3) * 0.5 + 0.5;
+      const x = s[0] * w, y = s[1] * h;
+      const r = 1.5 + tw * 2;
+      ctx.fillStyle = `rgba(100,180,255,${0.3 + tw*0.5})`;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
+    });
+    // Nebula clouds
+    ctx.globalCompositeOperation = 'screen';
+    for (let i=0;i<2;i++) {
+      const x = w * (0.3 + i*0.4 + Math.sin(time*0.05 + i)*0.1);
+      const y = h * (0.3 + i*0.3);
+      const r = w * 0.3;
+      const ng = ctx.createRadialGradient(x, y, 0, x, y, r);
+      ng.addColorStop(0, i === 0 ? 'rgba(80,30,120,0.15)' : 'rgba(20,60,100,0.12)');
+      ng.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = ng; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.restore();
+  }
   function drawLyrics(time, w, h) {
+    const preset = state.style.subtitlePreset || 'default';
+    if (preset !== 'default') {
+      const fn = SUBTITLE_PRESETS[preset];
+      if (fn) { fn(time, w, h); return; }
+    }
     const mode = state.style.lyricsDisplayMode || 'single';
     if (mode === 'single') drawSingleLyric(time, w, h);
     else if (mode === 'dual') drawDualLyric(time, w, h);
     else if (mode === 'scrollUp') drawScrollUpLyrics(time, w, h);
     else if (mode === 'scrollLeft') drawScrollLeftLyrics(time, w, h);
   }
+
+  // ===================== SUBTITLE PRESETS (from competition demo) =====================
+  function getCurrentLyricIndex(time) {
+    let idx = -1;
+    for (let i = 0; i < state.lyrics.length; i++) {
+      if (state.lyrics[i].start <= time + 0.001) idx = i;
+      else break;
+    }
+    return idx;
+  }
+  function getCqmin(w, h) { return Math.min(w, h) / 100; }
+  function escapeHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  // 预置微调工具：读取缩放/位置/透明度，并提供 hex→rgba 转换
+  function getPresetTuning() {
+    const s = state.style;
+    return {
+      scale: Math.max(0.1, s.presetScale / 100),
+      posX: s.presetPosX / 100,           // 0..1
+      posY: s.presetPosY / 100,           // 0..1
+      opacity: Math.max(0, Math.min(1, s.presetOpacity / 100)),
+      color: s.presetColor || '#ffffff'
+    };
+  }
+  // 预设字体选择：若用户选择具体字体则覆盖默认字体栈，否则使用预设自带的 fallback
+  function getPresetFont(fallback) {
+    const f = state.style.presetFont;
+    if (!f || f === 'auto') return fallback;
+    return `"${f.replace(/'/g, '').split(',')[0].trim()}", ${fallback}`;
+  }
+  // 动效生命周期：入场→停留→退场，返回 alpha/holdScale/holdGlow 等
+  function getPresetLifecycle(line, time) {
+    const durIn = Math.max(0.05, state.style.presetDurIn || 0.4);
+    const durOut = Math.max(0.05, state.style.presetDurOut || 0.4);
+    const tIn = clamp((time - line.start) / durIn, 0, 1);
+    const tOut = line.end ? clamp((line.end - time) / durOut, 0, 1) : 1;
+    const easeOut = t => 1 - Math.pow(1 - t, 3);
+    const easeInOut = t => t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t+2, 2)/2;
+    const alpha = Math.min(easeOut(tIn), easeInOut(tOut));
+    const age = time - line.start;
+    const isHolding = tIn >= 1 && tOut >= 1;
+    const cycle = Math.max(0.3, state.style.presetCycle || 1.6);
+    const holdMode = state.style.presetHold || 'breath';
+    let holdScale = 1, holdGlow = 1;
+    if (isHolding && holdMode === 'breath') {
+      holdScale = 1 + 0.05 * Math.sin(age * (Math.PI * 2 / cycle));
+    } else if (isHolding && holdMode === 'pulse') {
+      holdGlow = 0.7 + 0.3 * (0.5 + 0.5 * Math.sin(age * (Math.PI * 2 / cycle)));
+    }
+    return { tIn, tOut, alpha, age, inProgress: tIn, outProgress: 1-tOut, isHolding, holdScale, holdGlow, durIn, durOut };
+  }
+  // 字幕画面大小：返回可用渲染区域
+  function getPresetCanvas(w, h) {
+    const sizePct = Math.max(0.3, Math.min(1, (state.style.presetCanvasSize || 80) / 100));
+    const cw = w * sizePct;
+    const ch = h * sizePct;
+    return { cw, ch, sizePct };
+  }
+  // 字体自动排列：根据可用宽高自动缩放字号
+  function autoFitFontSize(ctx, text, fontPx, availW, availH, isVertical) {
+    if (!state.style.presetAutoFit) return fontPx;
+    const safePx = Math.max(4, fontPx);
+    ctx.font = `700 ${safePx}px sans-serif`;
+    if (isVertical) {
+      const charH = safePx * 1.2;
+      const maxChars = Math.floor(availH / charH);
+      const charCount = Array.from(text).length;
+      if (charCount > maxChars && maxChars > 0) {
+        return safePx * (maxChars / charCount);
+      }
+    } else {
+      const textW = ctx.measureText(text).width;
+      if (textW > availW && textW > 0) {
+        return safePx * (availW / textW);
+      }
+    }
+    return safePx;
+  }
+  // 设置面板精简：选择预设时隐藏自定义控件，选择"自定义"时显示
+  function updateStyleControlsVisibility() {
+    const isPreset = state.style.subtitlePreset !== 'default';
+    document.body.classList.toggle('preset-active', isPreset);
+    if (els.presetTuning) {
+      els.presetTuning.style.display = isPreset ? 'block' : 'none';
+    }
+  }
+  function hexToRgba(hex, alpha) {
+    let h = (hex || '#ffffff').replace('#', '');
+    if (h.length === 3) h = h.split('').map(c => c + c).join('');
+    const r = parseInt(h.slice(0, 2), 16) || 255;
+    const g = parseInt(h.slice(2, 4), 16) || 255;
+    const b = parseInt(h.slice(4, 6), 16) || 255;
+    return `rgba(${r},${g},${b},${alpha})`;
+  }
+  // 自适应缩放：根据文字长度与可用宽度计算缩放因子，防止溢出画面
+  function fitScale(ctx, text, fontPx, availW) {
+    if (!text || fontPx <= 0) return 1;
+    const m = ctx.measureText(text);
+    if (m.width <= availW) return 1;
+    return Math.max(0.3, availW / m.width);
+  }
+
+  // effect11 粒子系统（模块级变量，跨帧保持，避免每帧重建）
+  let effect11Particles = [];
+  let effect11PrevKP = 0;
+  const SUBTITLE_PRESETS = {
+    // Effect 0: 国风竖排 · 大字背景
+    effect0(time, w, h) {
+      const curIdx = getCurrentLyricIndex(time);
+      if (curIdx < 0) return;
+      const line = state.lyrics[curIdx];
+      const lc = getPresetLifecycle(line, time);
+      if (lc.alpha <= 0) return;
+      const fadeAlpha = lc.alpha;
+      const age = lc.age;
+      const cqmin = getCqmin(w, h);
+      const t = getPresetTuning();
+      const fontPx = 4.2 * cqmin * t.scale;   // 缩小主文字
+      const bigPx = 16 * cqmin * t.scale;     // 背景大字大幅缩小，避免溢出
+      const cleanChars = Array.from(line.text).filter(c => c && c !== ' ' && !"，。！？、：；".includes(c));
+      const vChars = cleanChars.length ? cleanChars : Array.from(line.text).filter(c => c && c !== ' ');
+      // 自适应：竖排总高度不超过画布高度的 80%
+      const maxChars = Math.max(2, Math.floor((h * 0.8) / (fontPx * 1.18)));
+      const shownChars = vChars.slice(0, maxChars);
+      const bgA = shownChars.length >= 2 ? shownChars[shownChars.length - 2] : (shownChars.length === 1 ? shownChars[0] : '');
+      const bgB = shownChars.length >= 2 ? shownChars[shownChars.length - 1] : '';
+      const bgVariant = curIdx % 4;
+
+      ctx.save();
+      ctx.globalAlpha = fadeAlpha * t.opacity;
+      // 背景大字（使用主色调淡光晕）
+      const bgPositions = [
+        [{x:0.14,y:0.14,ox:0,oy:0,op:0.85},{x:0.86,y:0.86,ox:-1,oy:-1,op:0.75}],
+        [{x:0.86,y:0.14,ox:-1,oy:0,op:0.82},{x:0.14,y:0.86,ox:0,oy:-1,op:0.72}],
+        [{x:0.14,y:0.50,ox:0,oy:-0.5,op:0.72},{x:0.86,y:0.30,ox:-1,oy:0,op:0.82}],
+        [{x:0.26,y:0.14,ox:0,oy:0,op:0.78},{x:0.74,y:0.86,ox:-1,oy:-1,op:0.78}],
+      ];
+      const positions = bgPositions[bgVariant];
+      ctx.font = `700 ${bigPx}px ${getPresetFont('"Noto Serif SC","Songti SC","STSong","SimSun",serif')}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      [bgA, bgB].forEach((ch, i) => {
+        if (!ch) return;
+        const pos = positions[i];
+        if (!pos) return;
+        const x = w * pos.x + pos.ox * bigPx * 0.5;
+        const y = h * pos.y + pos.oy * bigPx * 0.5;
+        ctx.save();
+        ctx.globalAlpha = fadeAlpha * t.opacity * pos.op;
+        ctx.shadowColor = hexToRgba(t.color, 0.48);
+        ctx.shadowBlur = 8;
+        ctx.fillStyle = hexToRgba(t.color, 0.22);
+        ctx.fillText(ch, x, y);
+        ctx.shadowBlur = 24;
+        ctx.shadowColor = hexToRgba(t.color, 0.30);
+        ctx.fillText(ch, x, y);
+        ctx.shadowBlur = 60;
+        ctx.shadowColor = hexToRgba(t.color, 0.18);
+        ctx.fillText(ch, x, y);
+        ctx.restore();
+      });
+      // 主竖排文字（位置 X/Y 可调）
+      const charH = fontPx * 1.18;
+      const totalH = shownChars.length * charH;
+      const centerY = h * t.posY;
+      const startY = centerY - totalH / 2 + charH / 2;
+      const centerX = w * t.posX;
+      ctx.font = `500 ${fontPx}px ${getPresetFont('"Noto Serif SC","Songti SC","STSong","SimSun",serif')}`;
+      ctx.shadowColor = 'transparent';
+      shownChars.forEach((ch, i) => {
+        const y = startY + i * charH;
+        ctx.save();
+        ctx.shadowColor = 'rgba(0,0,0,0.7)';
+        ctx.shadowBlur = 8;
+        ctx.shadowOffsetY = 2;
+        ctx.fillStyle = t.color;
+        ctx.fillText(ch, centerX, y);
+        ctx.restore();
+      });
+      ctx.restore();
+    },
+
+    // Effect 1: 三行滚动 · 黑体描边
+    effect1(time, w, h) {
+      const curIdx = getCurrentLyricIndex(time);
+      if (curIdx < 0) return;
+      const line = state.lyrics[curIdx];
+      const lc = getPresetLifecycle(line, time);
+      if (lc.alpha <= 0) return;
+      const fadeAlpha = lc.alpha;
+      const cqmin = getCqmin(w, h);
+      const t = getPresetTuning();
+      const basePx = 4 * cqmin * t.scale;
+      const activePx = 4.6 * cqmin * t.scale;
+      const gap = activePx * 0.3;
+      const centerX = w * t.posX;
+      // 三行总高度居中于 posY
+      const rowH = activePx * 1.3 + gap;
+      const topY = h * t.posY - rowH;
+      ctx.save();
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      for (let offset = -1; offset <= 1; offset++) {
+        const idx = curIdx + offset;
+        if (idx < 0 || idx >= state.lyrics.length) continue;
+        const isActive = offset === 0;
+        const text = state.lyrics[idx].text.trim();
+        const px = isActive ? activePx : basePx;
+        const y = topY + (offset + 1) * rowH;
+        ctx.font = `700 ${px}px ${getPresetFont('"Noto Sans SC","PingFang SC","Microsoft YaHei","Heiti SC","黑体",sans-serif')}`;
+        // 自适应缩放：文字宽度不超过画布 85%
+        const fit = fitScale(ctx, text, px, w * 0.85);
+        ctx.save();
+        ctx.globalAlpha = (isActive ? 1 : 0.56) * t.opacity * fadeAlpha;
+        ctx.translate(centerX, y);
+        ctx.scale(fit, fit);
+        ctx.strokeStyle = isActive ? 'rgba(140,140,150,0.7)' : 'rgba(120,120,130,0.9)';
+        ctx.lineWidth = 0.5;
+        ctx.lineJoin = 'round';
+        ctx.strokeText(text, 0, 0);
+        ctx.shadowColor = 'rgba(0,0,0,0.7)';
+        ctx.shadowBlur = isActive ? 14 : 10;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = isActive ? 4 : 2;
+        ctx.fillStyle = isActive ? t.color : 'rgba(220,220,225,0.85)';
+        ctx.fillText(text, 0, 0);
+        ctx.restore();
+      }
+      ctx.restore();
+    },
+
+    // Effect 2: 整屏倾斜 · 绿色高亮
+    effect2(time, w, h) {
+      const curIdx = getCurrentLyricIndex(time);
+      if (curIdx < 0) return;
+      const line = state.lyrics[curIdx];
+      const lc = getPresetLifecycle(line, time);
+      if (lc.alpha <= 0) return;
+      const fadeAlpha = lc.alpha;
+      const cqmin = getCqmin(w, h);
+      const t = getPresetTuning();
+      const basePx = 3 * cqmin * t.scale;
+      const activePx = 4.6 * cqmin * t.scale;
+      ctx.save();
+      ctx.translate(w * t.posX, h * t.posY);
+      ctx.rotate(-2 * Math.PI / 180);
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      const lineSpacing = activePx * 1.5;
+      const visibleCount = 3;
+      for (let i = -visibleCount; i <= visibleCount; i++) {
+        const idx = curIdx + i;
+        if (idx < 0 || idx >= state.lyrics.length) continue;
+        const isActive = i === 0;
+        const text = state.lyrics[idx].text.trim();
+        const px = isActive ? activePx : basePx;
+        const y = i * lineSpacing;
+        const alpha = isActive ? 1 : Math.max(0.42, 0.76 - Math.abs(i) * 0.08);
+        ctx.save();
+        ctx.globalAlpha = alpha * t.opacity * fadeAlpha;
+        ctx.font = `${isActive ? 700 : 400} ${px}px ${getPresetFont('"Noto Sans SC","Microsoft YaHei","PingFang SC","Heiti SC",sans-serif')}`;
+        const startX = -w * 0.35;
+        if (isActive) {
+          // 主色调渐变（保留绿色调作为默认，但随主色调变化）
+          const grad = ctx.createLinearGradient(0, y - px/2, 0, y + px/2);
+          grad.addColorStop(0, hexToRgba(t.color, 0.95));
+          grad.addColorStop(0.6, t.color);
+          grad.addColorStop(1, t.color);
+          ctx.shadowColor = hexToRgba(t.color, 0.55);
+          ctx.shadowBlur = 20;
+          ctx.fillStyle = grad;
+          ctx.fillText(text, startX, y);
+        } else {
+          ctx.shadowColor = 'rgba(0,0,0,0.45)';
+          ctx.shadowBlur = 12;
+          ctx.fillStyle = 'rgba(245,245,250,0.76)';
+          ctx.fillText(text, startX, y);
+        }
+        ctx.restore();
+      }
+      ctx.restore();
+    },
+
+    // Effect 3: 黄色宋体 · 经典复古
+    effect3(time, w, h) {
+      const curIdx = getCurrentLyricIndex(time);
+      if (curIdx < 0) return;
+      const line = state.lyrics[curIdx];
+      const lc = getPresetLifecycle(line, time);
+      if (lc.alpha <= 0) return;
+      const fadeAlpha = lc.alpha;
+      const age = lc.age;
+      const cqmin = getCqmin(w, h);
+      const t = getPresetTuning();
+      const px = 5.4 * cqmin * t.scale;
+      ctx.save();
+      ctx.globalAlpha = fadeAlpha * t.opacity;
+      ctx.font = `700 ${px}px ${getPresetFont('"Noto Serif SC","Songti SC","STSong","SimSun","宋体",serif')}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.lineJoin = 'round';
+      const text = line.text.trim();
+      const centerX = w * t.posX;
+      const y = h * t.posY;
+      // 自适应缩放
+      const fit = fitScale(ctx, text, px, w * 0.9);
+      ctx.translate(centerX, y);
+      ctx.scale(fit, fit);
+      // 双层偏移阴影
+      ctx.save();
+      ctx.fillStyle = 'rgba(120,40,10,0.68)';
+      ctx.fillText(text, px*0.075, px*0.085);
+      ctx.shadowColor = 'rgba(120,40,10,0.4)';
+      ctx.shadowBlur = px * 0.025;
+      ctx.fillText(text, px*0.075, px*0.085);
+      ctx.restore();
+      ctx.save();
+      ctx.fillStyle = 'rgba(190,72,18,0.96)';
+      ctx.fillText(text, px*0.045, px*0.055);
+      ctx.restore();
+      // 主文字（应用主色调，默认黄色保持经典）
+      ctx.fillStyle = t.color;
+      ctx.fillText(text, 0, 0);
+      ctx.restore();
+    },
+
+    // Effect 4: 发光圆体 · 白色光晕
+    effect4(time, w, h) {
+      const curIdx = getCurrentLyricIndex(time);
+      if (curIdx < 0) return;
+      const line = state.lyrics[curIdx];
+      const lc = getPresetLifecycle(line, time);
+      if (lc.alpha <= 0) return;
+      const fadeAlpha = lc.alpha;
+      const age = lc.age;
+      const cqmin = getCqmin(w, h);
+      const t = getPresetTuning();
+      const px = 5.4 * cqmin * t.scale;
+      const baseGlow = px * lc.holdGlow;
+      const centerX = w * t.posX;
+      const y = h * t.posY;
+      ctx.save();
+      ctx.globalAlpha = fadeAlpha * t.opacity;
+      ctx.font = `700 ${px}px ${getPresetFont('"Noto Sans Rounded SC","Yuanti SC","STYuanti","PingFang SC","Microsoft YaHei",sans-serif')}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.lineJoin = 'round';
+      const text = line.text.trim();
+      // 自适应缩放
+      const fit = fitScale(ctx, text, px, w * 0.85);
+      ctx.translate(centerX, y);
+      ctx.scale(fit, fit);
+      // 5 层光晕（使用主色调）
+      const layers = [
+        { blur: baseGlow * 1.65, color: hexToRgba(t.color, 0.40) },
+        { blur: baseGlow * 0.95, color: hexToRgba(t.color, 0.55) },
+        { blur: baseGlow * 0.48, color: hexToRgba(t.color, 0.80) },
+        { blur: baseGlow * 0.20, color: hexToRgba(t.color, 0.95) },
+      ];
+      if (typeof ctx.filter !== 'undefined') {
+        ctx.save();
+        ctx.filter = `blur(${baseGlow * 0.48}px)`;
+        ctx.fillStyle = hexToRgba(t.color, 0.55);
+        ctx.fillText(text, 0, 0);
+        ctx.restore();
+        ctx.save();
+        ctx.filter = `blur(${baseGlow * 0.95}px)`;
+        ctx.fillStyle = hexToRgba(t.color, 0.40);
+        ctx.fillText(text, 0, 0);
+        ctx.restore();
+      } else {
+        layers.forEach(l => {
+          ctx.save();
+          ctx.shadowColor = l.color;
+          ctx.shadowBlur = l.blur;
+          ctx.fillStyle = t.color;
+          ctx.fillText(text, 0, 0);
+          ctx.restore();
+        });
+      }
+      // 内层光晕 + 核心
+      ctx.save();
+      ctx.shadowColor = hexToRgba(t.color, 0.95);
+      ctx.shadowBlur = baseGlow * 0.20;
+      ctx.fillStyle = t.color;
+      ctx.fillText(text, 0, 0);
+      ctx.restore();
+      // 黑色投影
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,0.5)';
+      ctx.shadowBlur = baseGlow * 0.52;
+      ctx.shadowOffsetY = baseGlow * 0.22;
+      ctx.fillStyle = t.color;
+      ctx.fillText(text, 0, 0);
+      ctx.restore();
+      ctx.restore();
+    },
+
+    // Effect 5: 飘逸行书 · 天蓝发光
+    effect5(time, w, h) {
+      const curIdx = getCurrentLyricIndex(time);
+      if (curIdx < 0) return;
+      const line = state.lyrics[curIdx];
+      const lc = getPresetLifecycle(line, time);
+      if (lc.alpha <= 0) return;
+      const fadeAlpha = lc.alpha;
+      const age = lc.age;
+      const cqmin = getCqmin(w, h);
+      const t = getPresetTuning();
+      const fontSize = 9 * cqmin * t.scale;   // 大幅缩小，避免溢出
+      const fontFamily = getPresetFont('"Zhi Mang Xing","Ma Shan Zheng","STKaiti","KaiTi",cursive');
+      ctx.save();
+      ctx.globalAlpha = fadeAlpha * t.opacity;
+      ctx.translate(w * t.posX, h * t.posY);
+      // 轻微倾斜 + 缩放
+      ctx.transform(1, 0, -0.04, 1, 0, 0);
+      ctx.scale(0.9, 0.92);
+      ctx.font = `400 ${fontSize}px ${fontFamily}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.lineJoin = 'round';
+      const text = line.text.trim();
+      // 自适应缩放：行书字体很宽，限制在画布 80%
+      const fit = fitScale(ctx, text, fontSize, w * 0.8);
+      ctx.scale(fit, fit);
+      // 深色内描边
+      ctx.save();
+      ctx.strokeStyle = 'rgba(0,72,74,0.82)';
+      ctx.lineWidth = Math.max(1.4, fontSize * 0.014);
+      ctx.strokeText(text, fontSize * 0.008, fontSize * 0.012);
+      ctx.restore();
+      // 浅色外描边
+      ctx.save();
+      ctx.strokeStyle = hexToRgba(t.color, 0.46);
+      ctx.lineWidth = Math.max(0.8, fontSize * 0.005);
+      ctx.strokeText(text, 0, 0);
+      ctx.restore();
+      // 主色填充
+      ctx.fillStyle = t.color;
+      ctx.fillText(text, 0, 0);
+      ctx.restore();
+      // 贝塞尔下划线（随主色调）
+      ctx.save();
+      ctx.globalAlpha = fadeAlpha * t.opacity * 0.86;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      const cubic = (p0, p1, p2, p3, u) => {
+        const a = (1-u)**3, b = 3*(1-u)**2*u, c = 3*(1-u)*u**2, d = u**3;
+        return { x: p0.x*a + p1.x*b + p2.x*c + p3.x*d, y: p0.y*a + p1.y*b + p2.y*c + p3.y*d };
+      };
+      const uw = Math.max(4, Math.min(w, h) * 0.008);
+      const underY = h * (t.posY + 0.18);
+      const ctrlPts1 = [{x:w*0.17,y:underY},{x:w*0.30,y:underY+h*0.04},{x:w*0.43,y:underY-h*0.02},{x:w*0.55,y:underY-h*0.03}];
+      const ctrlPts2 = [{x:w*0.55,y:underY-h*0.03},{x:w*0.68,y:underY-h*0.04},{x:w*0.75,y:underY+h*0.02},{x:w*0.85,y:underY-h*0.01}];
+      const steps = 200;
+      const allPts = [];
+      for (let i = 0; i <= steps * 0.52; i++) {
+        const u = i / (steps * 0.52);
+        allPts.push(cubic(ctrlPts1[0],ctrlPts1[1],ctrlPts1[2],ctrlPts1[3],u));
+      }
+      for (let i = 1; i <= steps * 0.48; i++) {
+        const u = i / (steps * 0.48);
+        allPts.push(cubic(ctrlPts2[0],ctrlPts2[1],ctrlPts2[2],ctrlPts2[3],u));
+      }
+      const smoothstep = v => { const x = Math.max(0, Math.min(1, v)); return x*x*(3-2*x); };
+      const uc = t.color.replace('#','');
+      const uh = uc.length === 3 ? uc.split('').map(c=>c+c).join('') : uc;
+      const ur = parseInt(uh.slice(0,2),16)||255, ug = parseInt(uh.slice(2,4),16)||255, ub = parseInt(uh.slice(4,6),16)||255;
+      for (let i = 1; i < allPts.length; i++) {
+        const mid = (i - 0.5) / allPts.length;
+        const taper = Math.min(smoothstep(mid/0.18), smoothstep((1-mid)/0.18));
+        ctx.beginPath();
+        ctx.moveTo(allPts[i-1].x, allPts[i-1].y);
+        ctx.lineTo(allPts[i].x, allPts[i].y);
+        ctx.strokeStyle = `rgba(${ur},${ug},${ub},${0.86 * (0.04 + 0.96 * taper)})`;
+        ctx.lineWidth = Math.max(0.65, uw * (0.12 + 0.88 * taper));
+        ctx.stroke();
+      }
+      ctx.restore();
+    },
+
+    // ===== 国风竖排系列 =====
+
+    // Effect 6: 古卷右起 · 单列印章
+    // 传统右起单列竖排，配以印章式装饰边框，适合短句古诗
+    effect6(time, w, h) {
+      const curIdx = getCurrentLyricIndex(time);
+      if (curIdx < 0) return;
+      const line = state.lyrics[curIdx];
+      const lc = getPresetLifecycle(line, time);
+      if (lc.alpha <= 0) return;
+      const fadeAlpha = lc.alpha;
+      const cqmin = getCqmin(w, h);
+      const t = getPresetTuning();
+      const cv = getPresetCanvas(w, h);
+      const baseFontPx = 5.4 * cqmin * t.scale;
+      const fontPx = autoFitFontSize(ctx, line.text, baseFontPx, cv.cw * 0.9, cv.ch * 0.9, true);
+      const cleanChars = Array.from(line.text).filter(c => c && c !== ' ' && !"，。！？、：；".includes(c));
+      const chars = cleanChars.length ? cleanChars : Array.from(line.text).filter(c => c && c !== ' ');
+      // 限制字符数防止溢出
+      const maxChars = Math.max(3, Math.floor((h * 0.78) / (fontPx * 1.2)));
+      const shown = chars.slice(0, maxChars);
+      const charH = fontPx * 1.2;
+      const totalH = shown.length * charH;
+      const centerX = w * t.posX;
+      const centerY = h * t.posY;
+      const startY = centerY - totalH / 2 + charH / 2;
+      // 入场"盖印"动效：tIn<1 时缩放 1.3→1.0 并轻微旋转
+      const inScale = lc.tIn < 1 ? (1.3 - 0.3 * lc.tIn) : 1;
+      const inRot = lc.tIn < 1 ? (1 - lc.tIn) * 0.05 : 0;
+      const holdScale = lc.isHolding ? lc.holdScale : 1;
+
+      ctx.save();
+      ctx.globalAlpha = fadeAlpha * t.opacity;
+      ctx.translate(centerX, centerY);
+      ctx.rotate(inRot);
+      ctx.scale(inScale * holdScale, inScale * holdScale);
+      ctx.translate(-centerX, -centerY);
+
+      // 背景大字水印（取首字，fontPx*3，三层光晕）
+      const firstChar = chars[0] || '';
+      if (firstChar) {
+        const wmPx = fontPx * 3;
+        ctx.save();
+        ctx.font = `700 ${wmPx}px ${getPresetFont('"Noto Serif SC","Songti SC","STSong","SimSun",serif')}`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const wmLayers = [
+          { blur: 60, a: 0.06 },
+          { blur: 24, a: 0.08 },
+          { blur: 8, a: 0.10 },
+        ];
+        wmLayers.forEach(l => {
+          ctx.globalAlpha = fadeAlpha * l.a;
+          ctx.shadowColor = hexToRgba(t.color, l.a);
+          ctx.shadowBlur = l.blur;
+          ctx.fillStyle = hexToRgba(t.color, l.a);
+          ctx.fillText(firstChar, centerX, centerY);
+        });
+        ctx.restore();
+      }
+
+      // 印章框：四角云纹回纹装饰（L 形线条）+ 半透明底框 + 内框
+      const boxW = fontPx * 1.6;
+      const boxH = totalH + charH * 0.6;
+      const bx0 = centerX - boxW / 2;
+      const by0 = centerY - boxH / 2;
+      ctx.save();
+      ctx.strokeStyle = t.color;
+      ctx.lineWidth = Math.max(1, fontPx * 0.04);
+      // 半透明底框
+      ctx.save();
+      ctx.globalAlpha = fadeAlpha * t.opacity * 0.16;
+      ctx.fillStyle = t.color;
+      ctx.fillRect(bx0, by0, boxW, boxH);
+      ctx.restore();
+      ctx.globalAlpha = fadeAlpha * t.opacity * 0.5;
+      // 内框
+      ctx.strokeRect(bx0 + fontPx * 0.08, by0 + fontPx * 0.08, boxW - fontPx * 0.16, boxH - fontPx * 0.16);
+      // 四角云纹回纹（L 形，外层 + 内层）
+      const cornerLen = fontPx * 0.4;
+      const inset = fontPx * 0.18;
+      const drawCorner = (cx, cy, sx, sy) => {
+        ctx.beginPath();
+        ctx.moveTo(cx + sx * inset, cy + sy * (inset + cornerLen));
+        ctx.lineTo(cx + sx * inset, cy + sy * inset);
+        ctx.lineTo(cx + sx * (inset + cornerLen), cy + sy * inset);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(cx + sx * (inset + cornerLen * 0.35), cy + sy * (inset + cornerLen * 0.7));
+        ctx.lineTo(cx + sx * (inset + cornerLen * 0.35), cy + sy * (inset + cornerLen * 0.35));
+        ctx.lineTo(cx + sx * (inset + cornerLen * 0.7), cy + sy * (inset + cornerLen * 0.35));
+        ctx.stroke();
+      };
+      drawCorner(bx0, by0, 1, 1);
+      drawCorner(bx0 + boxW, by0, -1, 1);
+      drawCorner(bx0, by0 + boxH, 1, -1);
+      drawCorner(bx0 + boxW, by0 + boxH, -1, -1);
+      ctx.restore();
+
+      // 主竖排文字（自上而下）+ 多层光晕（外层 12 + 内层 4）
+      ctx.font = `700 ${fontPx}px ${getPresetFont('"Noto Serif SC","Songti SC","STSong","SimSun",serif')}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      shown.forEach((ch, i) => {
+        const y = startY + i * charH;
+        ctx.save();
+        ctx.shadowColor = 'rgba(0,0,0,0.65)';
+        ctx.shadowBlur = 12;
+        ctx.shadowOffsetY = 2;
+        ctx.fillStyle = t.color;
+        ctx.fillText(ch, centerX, y);
+        ctx.shadowBlur = 4;
+        ctx.shadowColor = hexToRgba(t.color, 0.5);
+        ctx.shadowOffsetY = 1;
+        ctx.fillText(ch, centerX, y);
+        ctx.restore();
+      });
+      ctx.restore();
+    },
+
+    // Effect 7: 双栏对仗 · 对联竖排
+    // 左栏显示上一句，右栏显示当前句，形成对联呼应
+    effect7(time, w, h) {
+      const curIdx = getCurrentLyricIndex(time);
+      if (curIdx < 0) return;
+      const line = state.lyrics[curIdx];
+      const lc = getPresetLifecycle(line, time);
+      if (lc.alpha <= 0) return;
+      const fadeAlpha = lc.alpha;
+      const cqmin = getCqmin(w, h);
+      const t = getPresetTuning();
+      const cv = getPresetCanvas(w, h);
+      const baseFontPx = 4.6 * cqmin * t.scale;
+      const baseSmallPx = 3.4 * cqmin * t.scale;
+      const fontPx = autoFitFontSize(ctx, line.text, baseFontPx, cv.cw * 0.45, cv.ch * 0.9, true);
+      const fontSmallPx = autoFitFontSize(ctx, curIdx > 0 ? state.lyrics[curIdx - 1].text : line.text, baseSmallPx, cv.cw * 0.45, cv.ch * 0.9, true);
+      const centerX = w * t.posX;
+      const centerY = h * t.posY;
+      const colGap = fontPx * 3.2;
+      const holdGlow = lc.isHolding ? lc.holdGlow : 1;
+      const colHalfH = h * 0.36;
+
+      ctx.save();
+      ctx.globalAlpha = fadeAlpha * t.opacity;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      // 入场卷轴展开：clip 区域从中心向两侧扩展
+      if (lc.tIn < 1) {
+        const halfW = (colGap + fontPx) * 0.5 * lc.tIn + 1;
+        ctx.beginPath();
+        ctx.rect(centerX - halfW, 0, halfW * 2, h);
+        ctx.clip();
+      }
+
+      const drawColumn = (text, x, px, alpha, isMain) => {
+        const cleanChars = Array.from(text).filter(c => c && c !== ' ' && !"，。！？、：；".includes(c));
+        const chars = cleanChars.length ? cleanChars : Array.from(text).filter(c => c && c !== ' ');
+        const maxChars = Math.max(3, Math.floor((h * 0.72) / (px * 1.18)));
+        const shown = chars.slice(0, maxChars);
+        const charH = px * 1.18;
+        const totalH = shown.length * charH;
+        const startY = centerY - totalH / 2 + charH / 2;
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.font = `700 ${px}px ${getPresetFont('"Noto Serif SC","Songti SC","STSong","SimSun",serif')}`;
+        shown.forEach((ch, i) => {
+          const y = startY + i * charH;
+          ctx.save();
+          if (isMain) {
+            // 外层光晕 12 + 内层光晕 4（hold 期 holdGlow 呼吸）
+            ctx.shadowColor = hexToRgba(t.color, 0.5);
+            ctx.shadowBlur = 12 * holdGlow;
+            ctx.fillStyle = t.color;
+            ctx.fillText(ch, x, y);
+            ctx.shadowBlur = 4 * holdGlow;
+            ctx.shadowColor = hexToRgba(t.color, 0.6);
+            ctx.fillText(ch, x, y);
+          } else {
+            ctx.shadowColor = 'rgba(0,0,0,0.5)';
+            ctx.shadowBlur = 4;
+            ctx.fillStyle = hexToRgba(t.color, 0.55);
+            ctx.fillText(ch, x, y);
+          }
+          ctx.restore();
+        });
+        ctx.restore();
+      };
+
+      // 卷轴轴头装饰（顶部+底部椭圆，渐变填充）
+      const drawScrollCap = (cy) => {
+        const capW = colGap + fontPx * 0.6;
+        const capH = fontPx * 0.5;
+        ctx.save();
+        const grad = ctx.createLinearGradient(0, cy - capH / 2, 0, cy + capH / 2);
+        grad.addColorStop(0, hexToRgba(t.color, 0.5));
+        grad.addColorStop(0.5, hexToRgba(t.color, 0.3));
+        grad.addColorStop(1, hexToRgba(t.color, 0.5));
+        ctx.fillStyle = grad;
+        ctx.strokeStyle = hexToRgba(t.color, 0.6);
+        ctx.lineWidth = Math.max(0.6, fontPx * 0.02);
+        ctx.beginPath();
+        ctx.ellipse(centerX, cy, capW / 2, capH / 2, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+      };
+      drawScrollCap(centerY - colHalfH - fontPx * 0.25);
+      drawScrollCap(centerY + colHalfH + fontPx * 0.25);
+
+      // 横批栏：取当前句首2字，较小字号居中绘制，在两栏上方
+      const hengpi = Array.from(line.text).filter(c => c && c !== ' ' && !"，。！？、：；".includes(c)).slice(0, 2).join('');
+      if (hengpi) {
+        ctx.save();
+        ctx.font = `700 ${fontSmallPx}px ${getPresetFont('"Noto Serif SC","Songti SC","STSong","SimSun",serif')}`;
+        ctx.globalAlpha = fadeAlpha * t.opacity * 0.85;
+        ctx.shadowColor = hexToRgba(t.color, 0.4);
+        ctx.shadowBlur = 8;
+        ctx.fillStyle = t.color;
+        ctx.fillText(hengpi, centerX, centerY - colHalfH - fontPx * 0.9);
+        ctx.restore();
+      }
+
+      // 左栏：上一句（淡，作为"上联"）
+      if (curIdx > 0) {
+        drawColumn(state.lyrics[curIdx - 1].text, centerX - colGap / 2, fontSmallPx, fadeAlpha * t.opacity * 0.55, false);
+      }
+      // 右栏：当前句（主，作为"下联"）
+      drawColumn(line.text, centerX + colGap / 2, fontPx, fadeAlpha * t.opacity, true);
+
+      // 中间装饰分隔线
+      ctx.save();
+      ctx.globalAlpha = fadeAlpha * t.opacity * 0.4;
+      ctx.strokeStyle = t.color;
+      ctx.lineWidth = Math.max(0.6, fontPx * 0.012);
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY - h * 0.28);
+      ctx.lineTo(centerX, centerY + h * 0.28);
+      ctx.stroke();
+      ctx.restore();
+      ctx.restore();
+    },
+
+    // Effect 8: 竖排带注 · 古籍批注
+    // 主竖排大字 + 侧边小字批注，模拟古籍排版
+    effect8(time, w, h) {
+      const curIdx = getCurrentLyricIndex(time);
+      if (curIdx < 0) return;
+      const line = state.lyrics[curIdx];
+      const lc = getPresetLifecycle(line, time);
+      if (lc.alpha <= 0) return;
+      const fadeAlpha = lc.alpha;
+      const cqmin = getCqmin(w, h);
+      const t = getPresetTuning();
+      const cv = getPresetCanvas(w, h);
+      const baseFontPx = 5.0 * cqmin * t.scale;
+      const fontPx = autoFitFontSize(ctx, line.text, baseFontPx, cv.cw * 0.9, cv.ch * 0.9, true);
+      const annotPx = 2.0 * cqmin * t.scale;
+      const cleanChars = Array.from(line.text).filter(c => c && c !== ' ' && !"，。！？、：；".includes(c));
+      const chars = cleanChars.length ? cleanChars : Array.from(line.text).filter(c => c && c !== ' ');
+      const maxChars = Math.max(3, Math.floor((h * 0.74) / (fontPx * 1.2)));
+      const shown = chars.slice(0, maxChars);
+      const charH = fontPx * 1.2;
+      const totalH = shown.length * charH;
+      const centerX = w * t.posX;
+      const centerY = h * t.posY;
+      const startY = centerY - totalH / 2 + charH / 2;
+      const holdGlow = lc.isHolding ? lc.holdGlow : 1;
+
+      ctx.save();
+      ctx.globalAlpha = fadeAlpha * t.opacity;
+
+      // 古籍版框：外框 + 内框（间距 fontPx*0.15），上下鱼尾标记（三角形）
+      const frameW = fontPx * 2.2;
+      const frameH = totalH + charH * 1.0;
+      const fx0 = centerX - frameW / 2;
+      const fy0 = centerY - frameH / 2;
+      ctx.save();
+      ctx.globalAlpha = fadeAlpha * t.opacity * 0.55;
+      ctx.strokeStyle = t.color;
+      ctx.lineWidth = Math.max(1, fontPx * 0.05);
+      ctx.strokeRect(fx0, fy0, frameW, frameH);
+      const inset = fontPx * 0.15;
+      ctx.strokeRect(fx0 + inset, fy0 + inset, frameW - inset * 2, frameH - inset * 2);
+      // 鱼尾标记
+      const fishW = fontPx * 0.5;
+      const fishH = fontPx * 0.35;
+      ctx.fillStyle = t.color;
+      const drawFishTail = (cy, dir) => {
+        ctx.beginPath();
+        ctx.moveTo(centerX - fishW / 2, cy);
+        ctx.lineTo(centerX + fishW / 2, cy);
+        ctx.lineTo(centerX, cy + dir * fishH);
+        ctx.closePath();
+        ctx.fill();
+      };
+      drawFishTail(fy0 + inset, 1);
+      drawFishTail(fy0 + frameH - inset, -1);
+      ctx.restore();
+
+      // 主竖排大字 + 光晕层（shadowBlur 8）
+      ctx.font = `700 ${fontPx}px ${getPresetFont('"Noto Serif SC","Songti SC","STSong","SimSun",serif')}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      shown.forEach((ch, i) => {
+        const y = startY + i * charH;
+        ctx.save();
+        ctx.shadowColor = 'rgba(0,0,0,0.7)';
+        ctx.shadowBlur = 8 * holdGlow;
+        ctx.shadowOffsetY = 2;
+        ctx.fillStyle = t.color;
+        ctx.fillText(ch, centerX, y);
+        ctx.restore();
+      });
+
+      // 侧边小字批注（朱红色）
+      const annotation = `第 ${curIdx + 1} 句 · 共 ${shown.length} 字`;
+      const annotChars = Array.from(annotation);
+      const annotCharH = annotPx * 1.3;
+      const annotTotalH = annotChars.length * annotCharH;
+      const annotStartY = centerY - annotTotalH / 2 + annotCharH / 2;
+      const annotX = fx0 - annotPx * 1.2;
+      ctx.save();
+      ctx.globalAlpha = fadeAlpha * t.opacity * 0.6;
+      ctx.font = `400 ${annotPx}px ${getPresetFont('"Noto Serif SC","Songti SC",serif')}`;
+      ctx.fillStyle = 'rgba(200, 40, 40, 0.7)';
+      annotChars.forEach((ch, i) => {
+        ctx.fillText(ch, annotX, annotStartY + i * annotCharH);
+      });
+      ctx.restore();
+      ctx.restore();
+    },
+
+    // Effect 9: 竖排瀑布 · 多列流
+    // 长句拆成多列竖排，自右向左流动，瀑布式布局
+    effect9(time, w, h) {
+      const curIdx = getCurrentLyricIndex(time);
+      if (curIdx < 0) return;
+      const line = state.lyrics[curIdx];
+      const lc = getPresetLifecycle(line, time);
+      if (lc.alpha <= 0) return;
+      const fadeAlpha = lc.alpha;
+      const cqmin = getCqmin(w, h);
+      const t = getPresetTuning();
+      const cv = getPresetCanvas(w, h);
+      const baseFontPx = 4.0 * cqmin * t.scale;
+      const fontPx = autoFitFontSize(ctx, line.text, baseFontPx, cv.cw * 0.9, cv.ch * 0.9, true);
+      const cleanChars = Array.from(line.text).filter(c => c && c !== ' ' && !"，。！？、：；".includes(c));
+      const chars = cleanChars.length ? cleanChars : Array.from(line.text).filter(c => c && c !== ' ');
+      // 按标点自然断句，拆成多列
+      const segments = line.text.split(/[\s，。！？；：、,.!?]+/).filter(s => s.length > 0);
+      const cols = segments.length > 1 ? segments : [line.text];
+      const maxCharsPerCol = Math.max(3, Math.floor((h * 0.74) / (fontPx * 1.18)));
+      const charH = fontPx * 1.18;
+      const colGap = fontPx * 1.8;
+      const centerX = w * t.posX;
+      const centerY = h * t.posY;
+      const holdGlow = lc.isHolding ? lc.holdGlow : 1;
+
+      ctx.save();
+      ctx.globalAlpha = fadeAlpha * t.opacity;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = `500 ${fontPx}px ${getPresetFont('"Noto Serif SC","Songti SC","STSong","SimSun",serif')}`;
+
+      // 背景水墨大字水印（首字，fontPx*3，blur 8/24/60 三层）
+      const firstChar = chars[0] || '';
+      if (firstChar) {
+        const wmPx = fontPx * 3;
+        ctx.save();
+        ctx.font = `700 ${wmPx}px ${getPresetFont('"Noto Serif SC","Songti SC","STSong","SimSun",serif')}`;
+        const wmLayers = [
+          { blur: 60, a: 0.06 },
+          { blur: 24, a: 0.06 },
+          { blur: 8, a: 0.06 },
+        ];
+        wmLayers.forEach(l => {
+          ctx.globalAlpha = fadeAlpha * l.a;
+          ctx.shadowColor = hexToRgba(t.color, l.a);
+          ctx.shadowBlur = l.blur;
+          ctx.fillStyle = hexToRgba(t.color, l.a);
+          ctx.fillText(firstChar, centerX, centerY);
+        });
+        ctx.restore();
+      }
+
+      // 列与列间分隔竖线（淡色，alpha 0.15）
+      const totalCols = cols.length;
+      const totalW = (totalCols - 1) * colGap;
+      const startColX = centerX + totalW / 2;
+      ctx.save();
+      ctx.globalAlpha = fadeAlpha * t.opacity * 0.15;
+      ctx.strokeStyle = t.color;
+      ctx.lineWidth = Math.max(0.5, fontPx * 0.015);
+      for (let c = 0; c < totalCols - 1; c++) {
+        const lineX = startColX - c * colGap - colGap / 2;
+        ctx.beginPath();
+        ctx.moveTo(lineX, centerY - h * 0.3);
+        ctx.lineTo(lineX, centerY + h * 0.3);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // 自右向左排列列（古法阅读顺序）
+      ctx.font = `500 ${fontPx}px ${getPresetFont('"Noto Serif SC","Songti SC","STSong","SimSun",serif')}`;
+      cols.forEach((colText, colIdx) => {
+        const colChars = Array.from(colText).filter(c => c && c !== ' ');
+        const shown = colChars.slice(0, maxCharsPerCol);
+        const colTotalH = shown.length * charH;
+        const colStartY = centerY - colTotalH / 2 + charH / 2;
+        const x = startColX - colIdx * colGap;
+        // 逐字渐显（自上而下，按列延迟）
+        shown.forEach((ch, i) => {
+          const charDelay = (colIdx * 0.08) + (i * 0.04);
+          const charProgress = clamp((lc.age - charDelay) / 0.25, 0, 1);
+          if (charProgress <= 0) return;
+          const y = colStartY + i * charH;
+          ctx.save();
+          ctx.globalAlpha = charProgress * t.opacity;
+          // 多层光晕
+          ctx.shadowColor = 'rgba(0,0,0,0.6)';
+          ctx.shadowBlur = 8 * holdGlow;
+          ctx.shadowOffsetY = 1;
+          ctx.fillStyle = t.color;
+          ctx.fillText(ch, x, y);
+          ctx.shadowBlur = 4 * holdGlow;
+          ctx.shadowColor = hexToRgba(t.color, 0.4);
+          ctx.fillText(ch, x, y);
+          ctx.restore();
+        });
+      });
+      ctx.restore();
+    },
+
+    // ===== LiveHouse 系列 =====
+
+    // Effect 10: 逐字呼吸 · 经典浮现
+    // 逐字浮现 + 微缩放 + 轻微位移，全行浮现后呼吸脉冲
+    effect10(time, w, h) {
+      const curIdx = getCurrentLyricIndex(time);
+      if (curIdx < 0) return;
+      const line = state.lyrics[curIdx];
+      const lc = getPresetLifecycle(line, time);
+      if (lc.alpha <= 0) return;
+      const fadeAlpha = lc.alpha;
+      const cqmin = getCqmin(w, h);
+      const t = getPresetTuning();
+      const cv = getPresetCanvas(w, h);
+      const baseFontPx = 5.4 * cqmin * t.scale;
+      const text = line.text.trim();
+      const fontPx = autoFitFontSize(ctx, text, baseFontPx, cv.cw * 0.9, cv.ch * 0.9, false);
+      const chars = Array.from(text);
+      const centerX = w * t.posX;
+      const centerY = h * t.posY;
+      const cycle = lc.cycle || 1.6;
+      // 估算总宽度并自适应
+      ctx.save();
+      ctx.font = `700 ${fontPx}px ${getPresetFont('"Noto Sans SC","PingFang SC",sans-serif')}`;
+      const charW = fontPx * 0.55;
+      const totalWidth = charW * chars.length;
+      const fit = Math.min(1, (w * 0.84) / Math.max(1, totalWidth));
+      const scaledFont = fontPx * fit;
+      const scaledCharW = charW * fit;
+      const scaledTotalW = scaledCharW * chars.length;
+      const startX = centerX - scaledTotalW / 2;
+
+      ctx.globalAlpha = fadeAlpha * t.opacity;
+      ctx.font = `700 ${scaledFont}px ${getPresetFont('"Noto Sans SC","PingFang SC",sans-serif')}`;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+
+      const allDone = lc.age > 0.25 + chars.length * 0.06;
+      // hold 阶段背景脉冲光圈（每 cycle 周期一个扩散圆环，半径 0→fontPx*2，alpha 衰减）
+      if (lc.isHolding) {
+        const cycPhase = (lc.age % cycle) / cycle;
+        const ringR = fontPx * 2 * cycPhase;
+        const ringA = (1 - cycPhase) * 0.35;
+        if (ringR > 0) {
+          ctx.save();
+          ctx.globalAlpha = fadeAlpha * t.opacity * ringA;
+          ctx.strokeStyle = t.color;
+          ctx.lineWidth = Math.max(1, fontPx * 0.04 * (1 - cycPhase));
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, ringR, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+
+      chars.forEach((ch, i) => {
+        const charProgress = clamp((lc.age - i * 0.06) / 0.25, 0, 1);
+        if (charProgress <= 0) return;
+        const x = startX + i * scaledCharW;
+        let scale = 0.8 + 0.2 * charProgress;
+        let alpha = charProgress;
+        // 全行浮现后呼吸脉冲（使用 holdScale，±5%）
+        if (allDone && lc.isHolding) {
+          scale *= lc.holdScale;
+        }
+        ctx.save();
+        ctx.translate(x + scaledCharW / 2, centerY);
+        ctx.scale(scale, scale);
+        ctx.globalAlpha = alpha * t.opacity;
+        // 外层柔光
+        ctx.shadowColor = hexToRgba(t.color, 0.55);
+        ctx.shadowBlur = 18;
+        ctx.fillStyle = t.color;
+        ctx.fillText(ch, 0, 0);
+        // 内层高光
+        ctx.shadowBlur = 4;
+        ctx.shadowColor = hexToRgba('#ffffff', 0.7);
+        ctx.fillText(ch, 0, 0);
+        ctx.restore();
+      });
+
+      // 底栏进度条：宽度按 lc.inProgress 填充
+      ctx.save();
+      ctx.globalAlpha = fadeAlpha * t.opacity * 0.8;
+      const barW = w * 0.4;
+      const barH = Math.max(2, fontPx * 0.06);
+      const barX = centerX - barW / 2;
+      const barY = h - fontPx * 0.6;
+      ctx.fillStyle = hexToRgba(t.color, 0.18);
+      ctx.fillRect(barX, barY, barW, barH);
+      ctx.fillStyle = t.color;
+      ctx.fillRect(barX, barY, barW * clamp(lc.inProgress, 0, 1), barH);
+      ctx.restore();
+      ctx.restore();
+    },
+
+    // Effect 11: 关键词爆裂 · 高潮段落
+    // 自动拆分关键词，非关键词淡入，关键词爆裂放大
+    effect11(time, w, h) {
+      const curIdx = getCurrentLyricIndex(time);
+      if (curIdx < 0) return;
+      const line = state.lyrics[curIdx];
+      const lc = getPresetLifecycle(line, time);
+      if (lc.alpha <= 0) return;
+      const fadeAlpha = lc.alpha;
+      const cqmin = getCqmin(w, h);
+      const t = getPresetTuning();
+      const cv = getPresetCanvas(w, h);
+      const baseFontPx = 4.8 * cqmin * t.scale;
+      const text = line.text.trim();
+      const fontPx = autoFitFontSize(ctx, text, baseFontPx, cv.cw * 0.9, cv.ch * 0.9, false);
+      const centerX = w * t.posX;
+      const centerY = h * t.posY;
+
+      // 自动拆分关键词（按标点/空格分词，取最长词）
+      const words = text.split(/[\s，。！？；：、,.!?]+/).filter(w => w.length > 0);
+      let keyword = text;
+      if (words.length > 0) {
+        keyword = words.reduce((a, b) => a.length > b.length ? a : b);
+      }
+      const keywordStart = text.indexOf(keyword);
+      const nonKeyword1 = text.substring(0, keywordStart);
+      const nonKeyword2 = text.substring(keywordStart + keyword.length);
+      const hasNonKeyword = nonKeyword1.length > 0 || nonKeyword2.length > 0;
+
+      ctx.save();
+      ctx.globalAlpha = fadeAlpha * t.opacity;
+      ctx.font = `700 ${fontPx}px ${getPresetFont('"Noto Sans SC","PingFang SC",sans-serif')}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      // 预测量词宽
+      const keywordW = ctx.measureText(keyword).width;
+      const nonKw1W = nonKeyword1 ? ctx.measureText(nonKeyword1).width : 0;
+      const nonKw2W = nonKeyword2 ? ctx.measureText(nonKeyword2).width : 0;
+
+      // 关键词爆裂效果
+      const keywordDelay = hasNonKeyword ? 0.4 : 0;
+      const keywordProgress = clamp((lc.age - keywordDelay) / 0.3, 0, 1);
+      const eased = keywordProgress > 0 ? (1 - Math.pow(1 - keywordProgress, 3)) : 0;
+      const kwScale = keywordProgress > 0 ? (1.4 - 0.4 * eased) : 0;
+      const kwHalfW = keywordW * kwScale / 2;
+
+      // 非关键词淡入（修复 bug：分置关键词左右两侧，避免拼接居中重叠）
+      const nonKeywordAlpha = clamp((lc.age - 0.1) / 0.3, 0, 1);
+      if (nonKeywordAlpha > 0 && hasNonKeyword) {
+        ctx.save();
+        ctx.globalAlpha = nonKeywordAlpha * 0.72 * t.opacity;
+        ctx.shadowColor = 'rgba(0,0,0,0.6)';
+        ctx.shadowBlur = 6;
+        ctx.fillStyle = hexToRgba(t.color, 0.92);
+        if (nonKeyword1) {
+          ctx.fillText(nonKeyword1, centerX - kwHalfW - nonKw1W / 2, centerY);
+        }
+        if (nonKeyword2) {
+          ctx.fillText(nonKeyword2, centerX + kwHalfW + nonKw2W / 2, centerY);
+        }
+        ctx.restore();
+      }
+
+      // 粒子爆裂：检测 keywordProgress 从 0 变为 >0 的瞬间生成 20~30 个粒子
+      if (keywordProgress > 0 && effect11PrevKP <= 0) {
+        const count = 22 + Math.floor(Math.random() * 9); // 22~30
+        for (let i = 0; i < count; i++) {
+          const ang = (i / count) * Math.PI * 2 + Math.random() * 0.3;
+          const speed = (1.5 + Math.random() * 2.5) * fontPx;
+          effect11Particles.push({
+            sx: centerX,
+            sy: centerY,
+            vx: Math.cos(ang) * speed,
+            vy: Math.sin(ang) * speed,
+            born: time,
+            ttl: 0.6 + Math.random() * 0.4,
+            size: fontPx * (0.06 + Math.random() * 0.08),
+          });
+        }
+      }
+      effect11PrevKP = keywordProgress;
+      // 清理过期粒子
+      effect11Particles = effect11Particles.filter(p => (time - p.born) < p.ttl);
+
+      // 屏幕闪光：爆裂瞬间（keywordProgress < 0.2）全屏白色 alpha 脉冲
+      if (keywordProgress > 0 && keywordProgress < 0.2) {
+        const flashA = (1 - keywordProgress / 0.2) * 0.25;
+        ctx.save();
+        ctx.globalAlpha = flashA;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, w, h);
+        ctx.restore();
+      }
+
+      // 绘制粒子（径向飞散 + 重力衰减 + alpha 衰减）
+      if (effect11Particles.length) {
+        const g = fontPx * 1.2;
+        ctx.save();
+        effect11Particles.forEach(p => {
+          const elapsed = time - p.born;
+          if (elapsed < 0 || elapsed > p.ttl) return;
+          const px = p.sx + p.vx * elapsed;
+          const py = p.sy + p.vy * elapsed + 0.5 * g * elapsed * elapsed;
+          const a = clamp(1 - elapsed / p.ttl, 0, 1);
+          ctx.globalAlpha = a * t.opacity;
+          ctx.fillStyle = t.color;
+          ctx.shadowColor = hexToRgba(t.color, 0.8);
+          ctx.shadowBlur = 6;
+          ctx.beginPath();
+          ctx.arc(px, py, p.size * (1 - elapsed / p.ttl * 0.5), 0, Math.PI * 2);
+          ctx.fill();
+        });
+        ctx.restore();
+      }
+
+      // 关键词爆裂主体
+      if (keywordProgress > 0) {
+        const scale = kwScale;
+        const alpha = keywordProgress;
+        ctx.save();
+        ctx.translate(centerX, centerY);
+        ctx.scale(scale, scale);
+        ctx.globalAlpha = alpha * t.opacity;
+        // 外层大光晕
+        ctx.shadowColor = hexToRgba(t.color, 0.9);
+        ctx.shadowBlur = 36;
+        ctx.fillStyle = t.color;
+        ctx.fillText(keyword, 0, 0);
+        // 中层光晕
+        ctx.shadowBlur = 16;
+        ctx.fillText(keyword, 0, 0);
+        // 内层高光
+        ctx.shadowBlur = 4;
+        ctx.shadowColor = 'rgba(255,255,255,0.85)';
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(keyword, 0, 0);
+        ctx.restore();
+      }
+      ctx.restore();
+    },
+
+    // Effect 12: 光晕拖影 · 流光跟随
+    // 文字带光晕拖影，流光从左到右扫过文字
+    effect12(time, w, h) {
+      const curIdx = getCurrentLyricIndex(time);
+      if (curIdx < 0) return;
+      const line = state.lyrics[curIdx];
+      const lc = getPresetLifecycle(line, time);
+      if (lc.alpha <= 0) return;
+      const fadeAlpha = lc.alpha;
+      const cqmin = getCqmin(w, h);
+      const t = getPresetTuning();
+      const cv = getPresetCanvas(w, h);
+      const baseFontPx = 5.6 * cqmin * t.scale;
+      const text = line.text.trim();
+      const fontPx = autoFitFontSize(ctx, text, baseFontPx, cv.cw * 0.9, cv.ch * 0.9, false);
+      const centerX = w * t.posX;
+      const centerY = h * t.posY;
+      const holdGlow = lc.isHolding ? lc.holdGlow : 1;
+
+      ctx.save();
+      ctx.globalAlpha = fadeAlpha * t.opacity;
+      ctx.font = `700 ${fontPx}px ${getPresetFont('"Noto Sans SC","PingFang SC",sans-serif')}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      // 自适应缩放
+      const fit = fitScale(ctx, text, fontPx, w * 0.84);
+
+      ctx.save();
+      ctx.translate(centerX, centerY);
+      ctx.scale(fit, fit);
+
+      // 时间衰减运动残影（age 驱动多偏移位置，alpha 逐层衰减）
+      const trailLayers = [
+        { off: lc.age * 30, alpha: 0.18, blur: 28 },
+        { off: lc.age * 25, alpha: 0.28, blur: 18 },
+        { off: lc.age * 20, alpha: 0.42, blur: 10 },
+      ];
+      trailLayers.forEach(tr => {
+        ctx.save();
+        ctx.globalAlpha = fadeAlpha * t.opacity * tr.alpha;
+        ctx.shadowColor = hexToRgba(t.color, 1);
+        ctx.shadowBlur = tr.blur * holdGlow;
+        ctx.fillStyle = t.color;
+        ctx.fillText(text, -tr.off, -tr.off * 0.5);
+        ctx.restore();
+      });
+
+      // 主文字
+      ctx.save();
+      ctx.shadowColor = hexToRgba(t.color, 0.7);
+      ctx.shadowBlur = 14 * holdGlow;
+      ctx.fillStyle = t.color;
+      ctx.fillText(text, 0, 0);
+      ctx.restore();
+
+      // 流光扫过效果（周期改为 lc.cycle）
+      const sweepDuration = lc.cycle || 2.4;
+      const sweepProgress = (lc.age % sweepDuration) / sweepDuration;
+      const textWidth = ctx.measureText(text).width;
+      const sweepX = -textWidth / 2 + sweepProgress * textWidth * 1.4 - textWidth * 0.2;
+      ctx.save();
+      ctx.shadowColor = 'rgba(255,255,255,0.95)';
+      ctx.shadowBlur = 16;
+      // 用线性渐变模拟流光（左透明→中白→右透明）
+      const grad = ctx.createLinearGradient(sweepX - textWidth * 0.15, 0, sweepX + textWidth * 0.15, 0);
+      grad.addColorStop(0, 'rgba(255,255,255,0)');
+      grad.addColorStop(0.5, 'rgba(255,255,255,0.85)');
+      grad.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = grad;
+      ctx.fillText(text, 0, 0);
+      ctx.restore();
+
+      // 镜头眩光：流光经过中心时（sweepProgress 0.4-0.6）画十字光芒
+      if (sweepProgress >= 0.4 && sweepProgress <= 0.6) {
+        const flareA = 1 - Math.abs(sweepProgress - 0.5) / 0.1;
+        const flareLen = fontPx * 1.5;
+        ctx.save();
+        ctx.globalAlpha = fadeAlpha * t.opacity * flareA * 0.6;
+        ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+        ctx.lineWidth = Math.max(1, fontPx * 0.03);
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(-flareLen, 0);
+        ctx.lineTo(flareLen, 0);
+        ctx.moveTo(0, -flareLen);
+        ctx.lineTo(0, flareLen);
+        ctx.stroke();
+        // 中心光点
+        ctx.fillStyle = 'rgba(255,255,255,0.8)';
+        ctx.shadowColor = 'rgba(255,255,255,0.9)';
+        ctx.shadowBlur = 20;
+        ctx.beginPath();
+        ctx.arc(0, 0, fontPx * 0.08, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      ctx.restore();
+      ctx.restore();
+    },
+
+    // Effect 13: 副歌放大 · 旋转爆发
+    // 副歌时刻：文字骤然放大并轻微旋转，强烈光晕爆发
+    effect13(time, w, h) {
+      const curIdx = getCurrentLyricIndex(time);
+      if (curIdx < 0) return;
+      const line = state.lyrics[curIdx];
+      const lc = getPresetLifecycle(line, time);
+      if (lc.alpha <= 0) return;
+      const fadeAlpha = lc.alpha;
+      const cqmin = getCqmin(w, h);
+      const t = getPresetTuning();
+      const cv = getPresetCanvas(w, h);
+      const baseFontPx = 5.2 * cqmin * t.scale;
+      const text = line.text.trim();
+      const fontPx = autoFitFontSize(ctx, text, baseFontPx, cv.cw * 0.9, cv.ch * 0.9, false);
+      const centerX = w * t.posX;
+      const centerY = h * t.posY;
+
+      // 0~0.4s: 从1.6倍缩小到1.0倍 + 旋转 -8°→0°
+      const burstProgress = clamp(lc.age / 0.4, 0, 1);
+      const eased = 1 - Math.pow(1 - burstProgress, 4); // easeOutQuart
+      let scale = 1.6 - 0.6 * eased;
+      const rotation = -0.14 * (1 - eased); // -8° → 0°
+      // 持续期轻微脉冲
+      const pulse = burstProgress >= 1 ? 1 + 0.03 * Math.sin(lc.age * 3.2) : 1;
+      // hold 阶段光晕呼吸
+      const holdGlow = lc.isHolding ? lc.holdGlow : 1;
+      // 退场放大虚化：tOut<1 时 scale 放大、alpha 衰减
+      let exitScale = 1, exitAlpha = 1;
+      if (lc.tOut < 1) {
+        exitScale = 1 + lc.outProgress * 0.3;
+        exitAlpha = lc.tOut;
+      }
+
+      // 屏幕边缘暗角脉冲（alpha 随 holdGlow 变化）
+      ctx.save();
+      const vignetteA = 0.25 + 0.2 * (1 - holdGlow);
+      const vGrad = ctx.createRadialGradient(centerX, centerY, Math.min(w, h) * 0.3, centerX, centerY, Math.max(w, h) * 0.7);
+      vGrad.addColorStop(0, 'rgba(0,0,0,0)');
+      vGrad.addColorStop(1, `rgba(0,0,0,${vignetteA})`);
+      ctx.globalAlpha = fadeAlpha * t.opacity;
+      ctx.fillStyle = vGrad;
+      ctx.fillRect(0, 0, w, h);
+      ctx.restore();
+
+      ctx.save();
+      ctx.globalAlpha = fadeAlpha * t.opacity * exitAlpha;
+      ctx.font = `700 ${fontPx}px ${getPresetFont('"Noto Sans SC","PingFang SC",sans-serif')}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const fit = fitScale(ctx, text, fontPx, w * 0.8);
+
+      ctx.translate(centerX, centerY);
+      ctx.rotate(rotation);
+      ctx.scale(fit * scale * pulse * exitScale, fit * scale * pulse * exitScale);
+
+      // 爆发期大光晕（hold 期用 holdGlow 呼吸）
+      const burstGlow = burstProgress < 1 ? (1 - burstProgress) * 0.8 : 0.3;
+      ctx.save();
+      ctx.shadowColor = hexToRgba(t.color, 0.95);
+      ctx.shadowBlur = (40 + burstGlow * 30) * holdGlow;
+      ctx.fillStyle = t.color;
+      ctx.fillText(text, 0, 0);
+      ctx.restore();
+      // 中层
+      ctx.save();
+      ctx.shadowColor = hexToRgba(t.color, 0.6);
+      ctx.shadowBlur = 18 * holdGlow;
+      ctx.fillStyle = t.color;
+      ctx.fillText(text, 0, 0);
+      ctx.restore();
+      // 内层高光
+      ctx.save();
+      ctx.shadowColor = 'rgba(255,255,255,0.7)';
+      ctx.shadowBlur = 4;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(text, 0, 0);
+      ctx.restore();
+
+      ctx.restore();
+    },
+
+    // Effect 14: 节拍卡点 · 鼓点炸开
+    // 每隔节拍间隔，文字"炸开"一次（缩放脉冲 + 光晕扩散）
+    effect14(time, w, h) {
+      const curIdx = getCurrentLyricIndex(time);
+      if (curIdx < 0) return;
+      const line = state.lyrics[curIdx];
+      const lc = getPresetLifecycle(line, time);
+      if (lc.alpha <= 0) return;
+      const fadeAlpha = lc.alpha;
+      const cqmin = getCqmin(w, h);
+      const t = getPresetTuning();
+      const cv = getPresetCanvas(w, h);
+      const baseFontPx = 5.6 * cqmin * t.scale;
+      const text = line.text.trim();
+      const fontPx = autoFitFontSize(ctx, text, baseFontPx, cv.cw * 0.9, cv.ch * 0.9, false);
+      const centerX = w * t.posX;
+      const centerY = h * t.posY;
+      // 节拍间隔改为 lc.cycle
+      const beatInterval = lc.cycle || 0.5;
+      const beatPhase = (lc.age % beatInterval) / beatInterval; // 0..1
+      // 每拍起始：scale 1.12 → 1.0，光晕大→小
+      const beatEased = 1 - Math.pow(1 - beatPhase, 3);
+      const scale = 1 + 0.12 * (1 - beatEased);
+      const glowBoost = (1 - beatEased) * 0.7;
+
+      ctx.save();
+      ctx.globalAlpha = fadeAlpha * t.opacity;
+      ctx.font = `700 ${fontPx}px ${getPresetFont('"Noto Sans SC","PingFang SC",sans-serif')}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const fit = fitScale(ctx, text, fontPx, w * 0.84);
+
+      // 屏幕震动：拍点起始（beatPhase < 0.1）随机抖动 ±2px
+      let shakeX = 0, shakeY = 0;
+      if (beatPhase < 0.1) {
+        const shakeAmt = 2 * (1 - beatPhase / 0.1);
+        shakeX = (Math.random() * 2 - 1) * shakeAmt;
+        shakeY = (Math.random() * 2 - 1) * shakeAmt;
+      }
+      ctx.translate(centerX + shakeX, centerY + shakeY);
+      ctx.scale(fit * scale, fit * scale);
+
+      // 拍点多环扩散：3 个延迟环（beatPhase < 0.4 / 0.6 / 0.8 时可见，半径递增）
+      const rings = [
+        { max: 0.4, rMul: 0.6 },
+        { max: 0.6, rMul: 1.0 },
+        { max: 0.8, rMul: 1.4 },
+      ];
+      rings.forEach(ring => {
+        if (beatPhase < ring.max) {
+          const rp = beatPhase / ring.max;
+          const ringR = fontPx * (ring.rMul + rp * 1.4);
+          ctx.save();
+          ctx.globalAlpha = fadeAlpha * t.opacity * (1 - rp) * 0.5;
+          ctx.strokeStyle = t.color;
+          ctx.lineWidth = Math.max(1, fontPx * 0.05 * (1 - rp));
+          ctx.beginPath();
+          ctx.arc(0, 0, ringR, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
+      });
+
+      // 外层大光晕（拍点时增强）
+      ctx.save();
+      ctx.shadowColor = hexToRgba(t.color, 0.85);
+      ctx.shadowBlur = 28 + glowBoost * 24;
+      ctx.fillStyle = t.color;
+      ctx.fillText(text, 0, 0);
+      ctx.restore();
+      // 中层
+      ctx.save();
+      ctx.shadowColor = hexToRgba(t.color, 0.5);
+      ctx.shadowBlur = 12;
+      ctx.fillStyle = t.color;
+      ctx.fillText(text, 0, 0);
+      ctx.restore();
+      // 内层高光
+      ctx.save();
+      ctx.shadowColor = 'rgba(255,255,255,0.7)';
+      ctx.shadowBlur = 3;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(text, 0, 0);
+      ctx.restore();
+
+      ctx.restore();
+    },
+
+    // Effect 15: 双行错位 · 呼吸留白
+    // 当前行 + 下一行错位显示，大量留白，呼吸式淡入淡出
+    effect15(time, w, h) {
+      const curIdx = getCurrentLyricIndex(time);
+      if (curIdx < 0) return;
+      const line = state.lyrics[curIdx];
+      const lc = getPresetLifecycle(line, time);
+      if (lc.alpha <= 0) return;
+      const fadeAlpha = lc.alpha;
+      const cqmin = getCqmin(w, h);
+      const t = getPresetTuning();
+      const cv = getPresetCanvas(w, h);
+      const baseMainPx = 4.8 * cqmin * t.scale;
+      const baseSubPx = 3.0 * cqmin * t.scale;
+      const mainPx = autoFitFontSize(ctx, line.text.trim(), baseMainPx, cv.cw * 0.9, cv.ch * 0.5, false);
+      const subPx = autoFitFontSize(ctx, (curIdx + 1 < state.lyrics.length) ? state.lyrics[curIdx + 1].text : '', baseSubPx, cv.cw * 0.7, cv.ch * 0.4, false);
+      const centerX = w * t.posX;
+      const centerY = h * t.posY;
+      const mainY = centerY - mainPx * 0.9;
+      const subY = centerY + subPx * 2.2;
+
+      ctx.save();
+      ctx.globalAlpha = fadeAlpha * t.opacity;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      // 背景大字水印（当前句，fontPx*4 超大字号，alpha 0.04）
+      const wmText = line.text.trim();
+      if (wmText) {
+        const wmPx = mainPx * 4;
+        ctx.save();
+        ctx.font = `700 ${wmPx}px ${getPresetFont('"Noto Sans SC","PingFang SC",sans-serif')}`;
+        ctx.globalAlpha = fadeAlpha * 0.04;
+        ctx.shadowColor = hexToRgba(t.color, 0.04);
+        ctx.shadowBlur = 24;
+        ctx.fillStyle = hexToRgba(t.color, 0.04);
+        ctx.fillText(wmText, centerX, centerY);
+        ctx.restore();
+      }
+
+      // 主行（当前句）- 呼吸式缩放（holdScale，±5%）+ 多层光晕（外层 16 + 内层 4）
+      const breath = lc.isHolding ? lc.holdScale : 1;
+      ctx.save();
+      ctx.font = `700 ${mainPx}px ${getPresetFont('"Noto Sans SC","PingFang SC",sans-serif')}`;
+      const mainFit = fitScale(ctx, line.text.trim(), mainPx, w * 0.7);
+      ctx.translate(centerX, mainY);
+      ctx.scale(mainFit * breath, mainFit * breath);
+      // 外层光晕
+      ctx.shadowColor = hexToRgba(t.color, 0.55);
+      ctx.shadowBlur = 16;
+      ctx.fillStyle = t.color;
+      ctx.fillText(line.text.trim(), 0, 0);
+      // 内层光晕
+      ctx.shadowBlur = 4;
+      ctx.shadowColor = 'rgba(255,255,255,0.6)';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(line.text.trim(), 0, 0);
+      ctx.restore();
+
+      // 副行（下一句）- 淡入错位
+      if (curIdx + 1 < state.lyrics.length) {
+        const nextLine = state.lyrics[curIdx + 1];
+        const subAlpha = clamp((lc.age - 0.5) / 0.5, 0, 1);
+        if (subAlpha > 0) {
+          ctx.save();
+          ctx.globalAlpha = subAlpha * t.opacity * 0.5;
+          ctx.font = `400 ${subPx}px ${getPresetFont('"Noto Sans SC","PingFang SC",sans-serif')}`;
+          const subFit = fitScale(ctx, nextLine.text.trim(), subPx, w * 0.6);
+          ctx.translate(centerX, subY);
+          ctx.scale(subFit, subFit);
+          ctx.fillStyle = hexToRgba(t.color, 0.7);
+          ctx.fillText(nextLine.text.trim(), 0, 0);
+          ctx.restore();
+        }
+      }
+
+      // 装饰留白线（主副行之间）
+      ctx.save();
+      ctx.globalAlpha = fadeAlpha * t.opacity * 0.3;
+      ctx.strokeStyle = t.color;
+      ctx.lineWidth = Math.max(0.5, mainPx * 0.008);
+      const lineY = (mainY + subY) / 2;
+      const lineW = w * 0.08;
+      ctx.beginPath();
+      ctx.moveTo(centerX - lineW, lineY);
+      ctx.lineTo(centerX + lineW, lineY);
+      ctx.stroke();
+      ctx.restore();
+
+      ctx.restore();
+    },
+    // Effect 16: 竖排·水墨晕染
+    // 主竖排 + 背景水墨大字 + 墨迹晕开 + 墨点粒子溅射
+    effect16(time, w, h) {
+      const curIdx = getCurrentLyricIndex(time);
+      if (curIdx < 0) return;
+      const line = state.lyrics[curIdx];
+      const lc = getPresetLifecycle(line, time);
+      if (lc.alpha <= 0) return;
+      const fadeAlpha = lc.alpha;
+      const age = lc.age;
+      const cqmin = getCqmin(w, h);
+      const t = getPresetTuning();
+      const cv = getPresetCanvas(w, h);
+      const text = line.text.trim();
+      const chars = Array.from(text).filter(c => c && c !== ' ' && !"，。！？、：；".includes(c));
+      const shownChars = chars.length ? chars : Array.from(text).filter(c => c && c !== ' ');
+      const basePx = 5.0 * cqmin * t.scale;
+      const fontPx = autoFitFontSize(ctx, text, basePx, cv.cw * 0.9, cv.ch * 0.9, true);
+      const charH = fontPx * 1.25;
+      const maxChars = Math.max(3, Math.floor((cv.ch * 0.78) / charH));
+      const shown = shownChars.slice(0, maxChars);
+      const totalH = shown.length * charH;
+      const centerX = w * t.posX;
+      const centerY = h * t.posY;
+      const startY = centerY - totalH / 2 + charH / 2;
+
+      ctx.save();
+      ctx.globalAlpha = fadeAlpha * t.opacity;
+
+      // 背景水墨大字水印（取首字，3层光晕）
+      if (shown.length > 0) {
+        const bgChar = shown[0];
+        const bgPx = fontPx * 3;
+        ctx.save();
+        ctx.font = `700 ${bgPx}px ${getPresetFont('"Ma Shan Zheng","Zhi Mang Xing","Long Cang",cursive')}`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = hexToRgba(t.color, 0.08);
+        ctx.shadowColor = hexToRgba(t.color, 0.3);
+        ctx.shadowBlur = 60;
+        ctx.fillText(bgChar, centerX, centerY);
+        ctx.shadowBlur = 24;
+        ctx.fillText(bgChar, centerX, centerY);
+        ctx.shadowBlur = 8;
+        ctx.fillText(bgChar, centerX, centerY);
+        ctx.restore();
+      }
+
+      // 主竖排文字（每字墨迹晕开 + 多层光晕）
+      ctx.font = `700 ${fontPx}px ${getPresetFont('"Ma Shan Zheng","Zhi Mang Xing","Long Cang","Liu Jian Mao Cao",cursive')}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      shown.forEach((ch, i) => {
+        const y = startY + i * charH;
+        const charProgress = clamp((age - i * 0.08) / 0.3, 0, 1);
+        if (charProgress <= 0) return;
+        const scale = lc.holdScale * (0.7 + 0.3 * charProgress);
+        ctx.save();
+        ctx.translate(centerX, y);
+        ctx.scale(scale, scale);
+        ctx.globalAlpha = charProgress * fadeAlpha * t.opacity;
+        // 墨迹晕开（径向渐变模拟）
+        const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, fontPx * 0.7);
+        grad.addColorStop(0, t.color);
+        grad.addColorStop(0.6, hexToRgba(t.color, 0.8));
+        grad.addColorStop(1, hexToRgba(t.color, 0.2));
+        // 外层光晕
+        ctx.shadowColor = hexToRgba(t.color, 0.5);
+        ctx.shadowBlur = 14 * lc.holdGlow;
+        ctx.fillStyle = grad;
+        ctx.fillText(ch, 0, 0);
+        // 内层高光
+        ctx.shadowBlur = 4;
+        ctx.fillStyle = t.color;
+        ctx.fillText(ch, 0, 0);
+        // 墨点粒子溅射（入场时）
+        if (charProgress < 1 && charProgress > 0.3) {
+          for (let p = 0; p < 4; p++) {
+            const angle = (p / 4) * Math.PI * 2 + i * 0.5;
+            const dist = fontPx * 0.5 * (1 - charProgress) * (0.5 + Math.random() * 0.5);
+            const px = Math.cos(angle) * dist;
+            const py = Math.sin(angle) * dist;
+            ctx.save();
+            ctx.globalAlpha = (1 - charProgress) * 0.4;
+            ctx.fillStyle = t.color;
+            ctx.beginPath();
+            ctx.arc(px, py, fontPx * 0.04 * Math.random(), 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+          }
+        }
+        ctx.restore();
+      });
+      ctx.restore();
+    },
+    // Effect 17: 竖排·印章红泥
+    // 朱红印章四字一组 + 四角云纹 + 盖印动效 + 印泥纹理
+    effect17(time, w, h) {
+      const curIdx = getCurrentLyricIndex(time);
+      if (curIdx < 0) return;
+      const line = state.lyrics[curIdx];
+      const lc = getPresetLifecycle(line, time);
+      if (lc.alpha <= 0) return;
+      const fadeAlpha = lc.alpha;
+      const cqmin = getCqmin(w, h);
+      const t = getPresetTuning();
+      const cv = getPresetCanvas(w, h);
+      const text = line.text.trim();
+      const chars = Array.from(text).filter(c => c && c !== ' ' && !"，。！？、：；".includes(c));
+      const shownChars = chars.length ? chars : Array.from(text).filter(c => c && c !== ' ');
+      const basePx = 4.8 * cqmin * t.scale;
+      const fontPx = autoFitFontSize(ctx, text, basePx, cv.cw * 0.9, cv.ch * 0.9, true);
+      const charH = fontPx * 1.2;
+      const maxChars = Math.max(2, Math.min(4, Math.floor((cv.ch * 0.6) / charH)));
+      const shown = shownChars.slice(0, maxChars);
+      const totalH = shown.length * charH;
+      const centerX = w * t.posX;
+      const centerY = h * t.posY;
+      const boxW = fontPx * 1.8;
+      const boxH = totalH + charH * 0.8;
+
+      ctx.save();
+      ctx.globalAlpha = fadeAlpha * t.opacity;
+      ctx.translate(centerX, centerY);
+
+      // 盖印动效（入场时 scale 1.3→1.0 + 旋转抖动）
+      const stampScale = lc.tIn < 1 ? 1.3 - 0.3 * lc.tIn : lc.holdScale;
+      const stampRot = lc.tIn < 1 ? (1 - lc.tIn) * 0.08 * Math.sin(lc.tIn * 20) : 0;
+      ctx.scale(stampScale, stampScale);
+      ctx.rotate(stampRot);
+
+      // 朱红印章背景
+      ctx.save();
+      ctx.fillStyle = 'rgba(180, 30, 30, 0.85)';
+      ctx.fillRect(-boxW / 2, -boxH / 2, boxW, boxH);
+      // 印泥纹理（随机噪点）
+      ctx.globalAlpha = fadeAlpha * t.opacity * 0.15;
+      for (let i = 0; i < 30; i++) {
+        const nx = (Math.random() - 0.5) * boxW;
+        const ny = (Math.random() - 0.5) * boxH;
+        ctx.fillStyle = Math.random() > 0.5 ? 'rgba(140,20,20,0.8)' : 'rgba(200,60,60,0.6)';
+        ctx.beginPath();
+        ctx.arc(nx, ny, fontPx * 0.03 * Math.random(), 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+
+      // 四角云纹装饰
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255, 240, 220, 0.7)';
+      ctx.lineWidth = Math.max(1, fontPx * 0.03);
+      const cornerLen = fontPx * 0.25;
+      const cornerOff = fontPx * 0.12;
+      [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx, sy]) => {
+        const cx = sx * (boxW / 2 - cornerOff);
+        const cy = sy * (boxH / 2 - cornerOff);
+        ctx.beginPath();
+        ctx.moveTo(cx, cy + sy * cornerLen);
+        ctx.lineTo(cx, cy);
+        ctx.lineTo(cx + sx * cornerLen, cy);
+        // 回纹钩
+        ctx.moveTo(cx + sx * cornerLen * 0.6, cy);
+        ctx.lineTo(cx + sx * cornerLen * 0.6, cy + sy * cornerLen * 0.4);
+        ctx.lineTo(cx + sx * cornerLen * 0.3, cy + sy * cornerLen * 0.4);
+        ctx.stroke();
+      });
+      ctx.restore();
+
+      // 白文（白色文字刻在朱红印章上）
+      ctx.font = `700 ${fontPx}px ${getPresetFont('"Noto Serif SC","Songti SC","STSong","SimSun",serif')}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const startY = -totalH / 2 + charH / 2;
+      shown.forEach((ch, i) => {
+        const y = startY + i * charH;
+        ctx.save();
+        ctx.fillStyle = 'rgba(255, 245, 230, 0.95)';
+        ctx.shadowColor = 'rgba(100, 10, 10, 0.5)';
+        ctx.shadowBlur = 3;
+        ctx.fillText(ch, 0, y);
+        ctx.restore();
+      });
+      ctx.restore();
+    },
+    // Effect 18: 竖排·竹简流光
+    // 竹简纹理背景 + 逐片展开入场 + 竖排题字
+    effect18(time, w, h) {
+      const curIdx = getCurrentLyricIndex(time);
+      if (curIdx < 0) return;
+      const line = state.lyrics[curIdx];
+      const lc = getPresetLifecycle(line, time);
+      if (lc.alpha <= 0) return;
+      const fadeAlpha = lc.alpha;
+      const age = lc.age;
+      const cqmin = getCqmin(w, h);
+      const t = getPresetTuning();
+      const cv = getPresetCanvas(w, h);
+      const text = line.text.trim();
+      const chars = Array.from(text).filter(c => c && c !== ' ' && !"，。！？、：；".includes(c));
+      const shownChars = chars.length ? chars : Array.from(text).filter(c => c && c !== ' ');
+      const basePx = 4.2 * cqmin * t.scale;
+      const fontPx = autoFitFontSize(ctx, text, basePx, cv.cw * 0.9, cv.ch * 0.9, true);
+      const charH = fontPx * 1.15;
+      const maxChars = Math.max(3, Math.floor((cv.ch * 0.72) / charH));
+      const shown = shownChars.slice(0, maxChars);
+      const totalH = shown.length * charH;
+      const centerX = w * t.posX;
+      const centerY = h * t.posY;
+      const bambooW = fontPx * 1.4;
+
+      // 竹简横向轻微摆动
+      const sway = Math.sin(age * 1.2) * fontPx * 0.04;
+
+      ctx.save();
+      ctx.globalAlpha = fadeAlpha * t.opacity;
+      ctx.translate(centerX + sway, centerY);
+
+      // 竹简背景（竖向竹片）
+      ctx.save();
+      const bambooGrad = ctx.createLinearGradient(-bambooW / 2, 0, bambooW / 2, 0);
+      bambooGrad.addColorStop(0, 'rgba(120, 90, 50, 0.6)');
+      bambooGrad.addColorStop(0.3, 'rgba(180, 140, 80, 0.5)');
+      bambooGrad.addColorStop(0.7, 'rgba(160, 120, 70, 0.5)');
+      bambooGrad.addColorStop(1, 'rgba(100, 75, 40, 0.6)');
+      ctx.fillStyle = bambooGrad;
+      ctx.fillRect(-bambooW / 2, -totalH / 2 - charH * 0.3, bambooW, totalH + charH * 0.6);
+      // 竹节横纹
+      ctx.strokeStyle = 'rgba(80, 55, 25, 0.4)';
+      ctx.lineWidth = Math.max(0.5, fontPx * 0.015);
+      for (let i = 1; i < shown.length; i++) {
+        const y = -totalH / 2 + i * charH - charH * 0.5;
+        ctx.beginPath();
+        ctx.moveTo(-bambooW / 2, y);
+        ctx.lineTo(bambooW / 2, y);
+        ctx.stroke();
+      }
+      // 牛绳装饰（上下各一根）
+      ctx.strokeStyle = 'rgba(60, 40, 20, 0.5)';
+      ctx.lineWidth = Math.max(1, fontPx * 0.025);
+      [-totalH / 2 - charH * 0.1, totalH / 2 + charH * 0.1].forEach(ry => {
+        ctx.beginPath();
+        ctx.moveTo(-bambooW / 2 - fontPx * 0.1, ry);
+        ctx.lineTo(bambooW / 2 + fontPx * 0.1, ry);
+        ctx.stroke();
+      });
+      ctx.restore();
+
+      // 逐片展开入场（从上到下逐字浮现）
+      ctx.font = `700 ${fontPx}px ${getPresetFont('"LXGW WenKai","Noto Serif SC","Songti SC",serif')}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const startY = -totalH / 2 + charH / 2;
+      shown.forEach((ch, i) => {
+        const charProgress = clamp((age - i * 0.07) / 0.3, 0, 1);
+        if (charProgress <= 0) return;
+        const y = startY + i * charH;
+        const scale = (0.6 + 0.4 * charProgress) * lc.holdScale;
+        ctx.save();
+        ctx.translate(0, y);
+        ctx.scale(scale, scale);
+        ctx.globalAlpha = charProgress * fadeAlpha * t.opacity;
+        // 多层光晕
+        ctx.shadowColor = hexToRgba(t.color, 0.4);
+        ctx.shadowBlur = 10 * lc.holdGlow;
+        ctx.fillStyle = t.color;
+        ctx.fillText(ch, 0, 0);
+        ctx.shadowBlur = 3;
+        ctx.fillStyle = t.color;
+        ctx.fillText(ch, 0, 0);
+        ctx.restore();
+      });
+      ctx.restore();
+    },
+    // Effect 19: 卡拉OK逐字填充
+    // 双色描边 + 逐字进度填充 + 光带扫过 + 底栏进度条
+    effect19(time, w, h) {
+      const curIdx = getCurrentLyricIndex(time);
+      if (curIdx < 0) return;
+      const line = state.lyrics[curIdx];
+      const lc = getPresetLifecycle(line, time);
+      if (lc.alpha <= 0) return;
+      const fadeAlpha = lc.alpha;
+      const cqmin = getCqmin(w, h);
+      const t = getPresetTuning();
+      const cv = getPresetCanvas(w, h);
+      const text = line.text.trim();
+      const chars = Array.from(text);
+      const basePx = 5.2 * cqmin * t.scale;
+      const fontPx = autoFitFontSize(ctx, text, basePx, cv.cw * 0.85, cv.ch * 0.9, false);
+      const centerX = w * t.posX;
+      const centerY = h * t.posY;
+      const lineDur = line.end ? (line.end - line.start) : 3;
+      const lineProgress = clamp((time - line.start) / lineDur, 0, 1);
+
+      ctx.save();
+      ctx.globalAlpha = fadeAlpha * t.opacity;
+      ctx.font = `700 ${fontPx}px ${getPresetFont('"Noto Sans SC","PingFang SC",sans-serif')}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      // 计算每个字的位置
+      const charWidths = chars.map(ch => ctx.measureText(ch).width);
+      const totalWidth = charWidths.reduce((a, b) => a + b, 0);
+      let xPos = centerX - totalWidth / 2;
+
+      chars.forEach((ch, i) => {
+        const charStart = i / chars.length;
+        const charEnd = (i + 1) / chars.length;
+        const charProgress = clamp((lineProgress - charStart) / (charEnd - charStart), 0, 1);
+        const cw = charWidths[i];
+        const cx = xPos + cw / 2;
+
+        ctx.save();
+        // 未唱部分（暗色描边）
+        ctx.globalAlpha = fadeAlpha * t.opacity * 0.35;
+        ctx.strokeStyle = hexToRgba(t.color, 0.5);
+        ctx.lineWidth = Math.max(1, fontPx * 0.03);
+        ctx.fillStyle = 'transparent';
+        ctx.strokeText(ch, cx, centerY);
+
+        // 已唱部分（主色填充）
+        if (charProgress > 0) {
+          ctx.globalAlpha = fadeAlpha * t.opacity;
+          // 光晕
+          ctx.shadowColor = hexToRgba(t.color, 0.6 * lc.holdGlow);
+          ctx.shadowBlur = 12;
+          ctx.fillStyle = t.color;
+          // 用 clip 实现逐字进度填充
+          if (charProgress < 1) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(cx - cw / 2, centerY - fontPx, cw * charProgress, fontPx * 2);
+            ctx.clip();
+            ctx.fillText(ch, cx, centerY);
+            ctx.restore();
+          } else {
+            ctx.fillText(ch, cx, centerY);
+          }
+          // 光带扫过当前字
+          if (charProgress > 0 && charProgress < 1) {
+            ctx.save();
+            ctx.globalAlpha = fadeAlpha * t.opacity * 0.8;
+            const sweepX = cx - cw / 2 + cw * charProgress;
+            const sweepGrad = ctx.createLinearGradient(sweepX - fontPx * 0.3, 0, sweepX + fontPx * 0.3, 0);
+            sweepGrad.addColorStop(0, 'rgba(255,255,255,0)');
+            sweepGrad.addColorStop(0.5, 'rgba(255,255,255,0.8)');
+            sweepGrad.addColorStop(1, 'rgba(255,255,255,0)');
+            ctx.fillStyle = sweepGrad;
+            ctx.fillRect(sweepX - fontPx * 0.3, centerY - fontPx * 0.7, fontPx * 0.6, fontPx * 1.4);
+            ctx.restore();
+          }
+        }
+        ctx.restore();
+        xPos += cw;
+      });
+
+      // 底栏进度条
+      ctx.save();
+      ctx.globalAlpha = fadeAlpha * t.opacity * 0.6;
+      const barW = cv.cw * 0.5;
+      const barH = Math.max(2, fontPx * 0.04);
+      const barX = centerX - barW / 2;
+      const barY = centerY + fontPx * 1.5;
+      // 背景
+      ctx.fillStyle = hexToRgba(t.color, 0.15);
+      ctx.fillRect(barX, barY, barW, barH);
+      // 进度
+      ctx.fillStyle = t.color;
+      ctx.shadowColor = hexToRgba(t.color, 0.6);
+      ctx.shadowBlur = 6;
+      ctx.fillRect(barX, barY, barW * lineProgress, barH);
+      ctx.restore();
+
+      ctx.restore();
+    },
+    // Effect 20: 全屏粒子爆裂
+    // 关键词爆裂 + 粒子飞散 + 光圈 + 屏幕闪光
+    effect20(time, w, h) {
+      const curIdx = getCurrentLyricIndex(time);
+      if (curIdx < 0) return;
+      const line = state.lyrics[curIdx];
+      const lc = getPresetLifecycle(line, time);
+      if (lc.alpha <= 0) return;
+      const fadeAlpha = lc.alpha;
+      const age = lc.age;
+      const cqmin = getCqmin(w, h);
+      const t = getPresetTuning();
+      const cv = getPresetCanvas(w, h);
+      const text = line.text.trim();
+      const basePx = 5.0 * cqmin * t.scale;
+      const fontPx = autoFitFontSize(ctx, text, basePx, cv.cw * 0.8, cv.ch * 0.9, false);
+      const centerX = w * t.posX;
+      const centerY = h * t.posY;
+
+      // 粒子系统
+      if (!state._effect20Particles) state._effect20Particles = [];
+      if (!state._effect20PrevAge) state._effect20PrevAge = 0;
+      const particles = state._effect20Particles;
+
+      // 入场爆裂：age 从 0 变为 >0 时生成粒子
+      if (age > 0 && state._effect20PrevAge === 0) {
+        for (let i = 0; i < 40; i++) {
+          const angle = (i / 40) * Math.PI * 2 + Math.random() * 0.3;
+          const speed = fontPx * (1.5 + Math.random() * 2.5);
+          particles.push({
+            x: 0, y: 0,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            life: 1.0,
+            size: fontPx * (0.03 + Math.random() * 0.05)
+          });
+        }
+      }
+      state._effect20PrevAge = age;
+      // 退场收束
+      if (lc.tOut < 1 && lc.tOut > 0 && particles.length > 0) {
+        particles.forEach(p => {
+          p.vx *= 0.85;
+          p.vy *= 0.85;
+          p.life *= 0.92;
+        });
+      }
+
+      ctx.save();
+      ctx.globalAlpha = fadeAlpha * t.opacity;
+      ctx.translate(centerX, centerY);
+
+      // 屏幕闪光（入场瞬间）
+      if (age < 0.2) {
+        ctx.save();
+        ctx.globalAlpha = (1 - age / 0.2) * 0.3;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(-w / 2, -h / 2, w, h);
+        ctx.restore();
+      }
+
+      // 光圈扩散
+      if (age < 1.0) {
+        const ringProgress = age;
+        const ringR = fontPx * (0.5 + ringProgress * 3);
+        ctx.save();
+        ctx.globalAlpha = (1 - ringProgress) * 0.5 * fadeAlpha * t.opacity;
+        ctx.strokeStyle = t.color;
+        ctx.lineWidth = Math.max(1, fontPx * 0.04 * (1 - ringProgress));
+        ctx.beginPath();
+        ctx.arc(0, 0, ringR, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // 更新和绘制粒子
+      ctx.save();
+      ctx.fillStyle = t.color;
+      ctx.shadowColor = hexToRgba(t.color, 0.8);
+      ctx.shadowBlur = 8;
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx * 0.016;
+        p.y += p.vy * 0.016;
+        p.vy += fontPx * 0.08; // 重力
+        p.vx *= 0.98;
+        p.life -= 0.012;
+        if (p.life <= 0) {
+          particles.splice(i, 1);
+          continue;
+        }
+        ctx.globalAlpha = p.life * fadeAlpha * t.opacity;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+
+      // 主文字（多层光晕）
+      ctx.save();
+      ctx.scale(lc.holdScale, lc.holdScale);
+      ctx.font = `700 ${fontPx}px ${getPresetFont('"Noto Sans SC","PingFang SC",sans-serif')}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      // 外层大光晕
+      ctx.shadowColor = hexToRgba(t.color, 0.9);
+      ctx.shadowBlur = 36 * lc.holdGlow;
+      ctx.fillStyle = t.color;
+      ctx.fillText(text, 0, 0);
+      // 中层
+      ctx.shadowBlur = 16;
+      ctx.fillText(text, 0, 0);
+      // 内层高光
+      ctx.shadowBlur = 4;
+      ctx.shadowColor = 'rgba(255,255,255,0.85)';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(text, 0, 0);
+      ctx.restore();
+
+      ctx.restore();
+    },
+    // Effect 21: 底栏进度脉冲
+    // 底部进度条 + 主文字居中 + 节拍光柱 + 背景脉冲光圈
+    effect21(time, w, h) {
+      const curIdx = getCurrentLyricIndex(time);
+      if (curIdx < 0) return;
+      const line = state.lyrics[curIdx];
+      const lc = getPresetLifecycle(line, time);
+      if (lc.alpha <= 0) return;
+      const fadeAlpha = lc.alpha;
+      const age = lc.age;
+      const cqmin = getCqmin(w, h);
+      const t = getPresetTuning();
+      const cv = getPresetCanvas(w, h);
+      const text = line.text.trim();
+      const basePx = 5.4 * cqmin * t.scale;
+      const fontPx = autoFitFontSize(ctx, text, basePx, cv.cw * 0.85, cv.ch * 0.9, false);
+      const centerX = w * t.posX;
+      const centerY = h * t.posY;
+      const lineDur = line.end ? (line.end - line.start) : 3;
+      const lineProgress = clamp((time - line.start) / lineDur, 0, 1);
+      const cycle = Math.max(0.3, state.style.presetCycle || 1.6);
+      const beatPhase = (age % cycle) / cycle;
+
+      ctx.save();
+      ctx.globalAlpha = fadeAlpha * t.opacity;
+
+      // 背景脉冲光圈（每周期扩散一次）
+      if (beatPhase < 0.5) {
+        const ringProgress = beatPhase / 0.5;
+        const ringR = fontPx * (1 + ringProgress * 4);
+        ctx.save();
+        ctx.globalAlpha = (1 - ringProgress) * 0.2 * fadeAlpha * t.opacity;
+        ctx.strokeStyle = t.color;
+        ctx.lineWidth = Math.max(1, fontPx * 0.03);
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, ringR, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // 节拍光柱（每周期从底升起一道光柱）
+      if (beatPhase < 0.3) {
+        const pillarProgress = beatPhase / 0.3;
+        const pillarH = cv.ch * 0.4 * (1 - pillarProgress);
+        const pillarAlpha = (1 - pillarProgress) * 0.15;
+        ctx.save();
+        const pillarGrad = ctx.createLinearGradient(0, h, 0, h - pillarH);
+        pillarGrad.addColorStop(0, hexToRgba(t.color, pillarAlpha));
+        pillarGrad.addColorStop(1, hexToRgba(t.color, 0));
+        ctx.fillStyle = pillarGrad;
+        ctx.fillRect(centerX - cv.cw * 0.15, h - pillarH, cv.cw * 0.3, pillarH);
+        ctx.restore();
+      }
+
+      // 主文字（多层光晕）
+      ctx.save();
+      ctx.translate(centerX, centerY);
+      ctx.scale(lc.holdScale, lc.holdScale);
+      ctx.font = `700 ${fontPx}px ${getPresetFont('"Noto Sans SC","PingFang SC",sans-serif')}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      // 外层光晕
+      ctx.shadowColor = hexToRgba(t.color, 0.6 * lc.holdGlow);
+      ctx.shadowBlur = 20;
+      ctx.fillStyle = t.color;
+      ctx.fillText(text, 0, 0);
+      // 内层高光
+      ctx.shadowBlur = 5;
+      ctx.shadowColor = 'rgba(255,255,255,0.7)';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(text, 0, 0);
+      ctx.restore();
+
+      // 底栏进度条
+      ctx.save();
+      const barW = cv.cw * 0.6;
+      const barH = Math.max(3, fontPx * 0.05);
+      const barX = centerX - barW / 2;
+      const barY = h - cv.ch * 0.08;
+      // 背景
+      ctx.globalAlpha = fadeAlpha * t.opacity * 0.15;
+      ctx.fillStyle = t.color;
+      ctx.fillRect(barX, barY, barW, barH);
+      // 进度（发光）
+      ctx.globalAlpha = fadeAlpha * t.opacity * 0.8;
+      ctx.shadowColor = hexToRgba(t.color, 0.8);
+      ctx.shadowBlur = 10;
+      ctx.fillRect(barX, barY, barW * lineProgress, barH);
+      // 进度点
+      if (lineProgress > 0 && lineProgress < 1) {
+        ctx.globalAlpha = fadeAlpha * t.opacity;
+        ctx.shadowBlur = 14;
+        ctx.beginPath();
+        ctx.arc(barX + barW * lineProgress, barY + barH / 2, barH * 0.8, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+
+      ctx.restore();
+    },
+  };
   function setupTextContext(ctx, fontSize) {
     ctx.font = `bold ${fontSize}px ${state.style.fontFamily}`;
     ctx.textAlign = 'center';
@@ -1718,9 +4452,10 @@
     if (mode === 'solid') return state.style.textColor;
     if (mode === 'rainbow') {
       const gradient = ctx.createLinearGradient(x - width/2, y, x + width/2, y);
-      const offset = time * 60;
-      for (let i = 0; i <= 6; i++) {
-        gradient.addColorStop(i / 6, `hsl(${(i * 60 + offset) % 360}, 90%, 60%)`);
+      const offset = (time * 80) % 360;
+      for (let i = 0; i <= 7; i++) {
+        const hue = (i * (360/7) + offset) % 360;
+        gradient.addColorStop(i / 7, `hsl(${hue}, 90%, 55%)`);
       }
       return gradient;
     }
@@ -1741,7 +4476,6 @@
     ctx.textAlign = align;
     const dir = state.style.textDirection || 'horizontal';
     if (dir === 'vertical') {
-      // Vertical: split into characters and draw each char vertically
       const chars = Array.from(text);
       const charH = state.style.fontSize * 1.1;
       const totalH = chars.length * charH;
@@ -1751,45 +4485,68 @@
       });
       return;
     }
-    // horizontal or rotated
     ctx.save();
-    if (dir === 'rotate90') ctx.translate(x, y), ctx.rotate(Math.PI / 2);
-    else if (dir === 'rotate270') ctx.translate(x, y), ctx.rotate(-Math.PI / 2);
-    else ctx.translate(x, y);
-    if (dir !== 'horizontal') ctx.translate(-x, -y);
-    const sw = state.style.strokeWidth;
-    if (shadow && state.style.shadowBlur > 0) {
-      ctx.shadowColor = 'rgba(0,0,0,.6)';
-      ctx.shadowBlur = state.style.shadowBlur;
-      ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 4;
-    }
-    if (stroke && sw > 0) {
-      ctx.strokeStyle = state.style.strokeColor;
-      ctx.lineWidth = sw;
-      ctx.strokeText(text, x, y);
-    }
-    ctx.shadowColor = 'transparent';
-    ctx.fillStyle = fillStyle || state.style.textColor;
-    ctx.fillText(text, x, y);
+    ctx.translate(x, y);
+    if (dir === 'rotate90') ctx.rotate(Math.PI / 2);
+    else if (dir === 'rotate270') ctx.rotate(-Math.PI / 2);
+    drawTextWithEffects(ctx, text, 0, 0, fillStyle, stroke, shadow);
     ctx.restore();
   }
   function drawStyledSingleChar(ctx, ch, x, y, fillStyle, stroke, shadow) {
-    const sw = state.style.strokeWidth;
     ctx.save();
-    if (shadow && state.style.shadowBlur > 0) {
-      ctx.shadowColor = 'rgba(0,0,0,.6)';
-      ctx.shadowBlur = state.style.shadowBlur;
-      ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 4;
+    drawTextWithEffects(ctx, ch, x, y, fillStyle, stroke, shadow);
+    ctx.restore();
+  }
+  function drawTextWithEffects(ctx, text, x, y, fillStyle, stroke, shadow) {
+    const sw = state.style.strokeWidth;
+    const blur = state.style.shadowBlur;
+    const highlightColor = state.style.highlightColor;
+    const textColor = fillStyle || state.style.textColor;
+    // Layer 1: Outer glow (multi-pass for neon effect)
+    if (shadow && blur > 0) {
+      ctx.save();
+      ctx.shadowColor = highlightColor;
+      ctx.shadowBlur = blur * 2;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+      ctx.globalAlpha = 0.6;
+      ctx.fillStyle = textColor;
+      ctx.fillText(text, x, y);
+      ctx.restore();
+      ctx.save();
+      ctx.shadowColor = highlightColor;
+      ctx.shadowBlur = blur;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 2;
+      ctx.globalAlpha = 0.8;
+      ctx.fillStyle = textColor;
+      ctx.fillText(text, x, y);
+      ctx.restore();
     }
+    // Layer 2: Stroke (outline for readability)
     if (stroke && sw > 0) {
+      ctx.save();
       ctx.strokeStyle = state.style.strokeColor;
       ctx.lineWidth = sw;
-      ctx.strokeText(ch, x, y);
+      ctx.lineJoin = 'round';
+      ctx.strokeText(text, x, y);
+      ctx.restore();
     }
+    // Layer 3: Base fill text
+    ctx.save();
     ctx.shadowColor = 'transparent';
-    ctx.fillStyle = fillStyle || state.style.textColor;
-    ctx.fillText(ch, x, y);
+    ctx.fillStyle = textColor;
+    ctx.fillText(text, x, y);
     ctx.restore();
+    // Layer 4: Inner highlight (subtle top-left light reflection)
+    if (shadow && blur > 10) {
+      ctx.save();
+      ctx.globalAlpha = 0.15;
+      ctx.fillStyle = '#ffffff';
+      ctx.shadowColor = 'transparent';
+      ctx.fillText(text, x, y);
+      ctx.restore();
+    }
   }
   function drawSingleLyric(time, w, h) {
     const active = state.lyrics.filter(l => time >= l.start - 0.5 && time <= l.end + 0.5);
@@ -1809,20 +4566,20 @@
       const y = (idx - (lines.length-1)/2) * lineHeight;
       const textW = ctx.measureText(txt).width;
       const fillStyle = getTextFillStyle(ctx, txt, 0, y, time, textW);
-      // highlight (karaoke) using clip
+      // Karaoke highlight with smooth edge transition
       const highlightW = textW * progress;
+      const edgeSoftness = Math.min(4, textW * 0.03);
       if (highlightW > 0) {
         ctx.save();
         ctx.beginPath();
-        ctx.rect(-textW/2, y - lineHeight/2, highlightW, lineHeight);
+        ctx.rect(-textW/2, y - lineHeight/2, highlightW + edgeSoftness, lineHeight);
         ctx.clip();
         drawStyledText(ctx, txt, 0, y, { fillStyle: state.style.highlightColor });
         ctx.restore();
       }
-      // remaining text with clip to avoid overlapping highlight
       ctx.save();
       ctx.beginPath();
-      ctx.rect(-textW/2 + highlightW, y - lineHeight/2, textW - highlightW, lineHeight);
+      ctx.rect(-textW/2 + highlightW, y - lineHeight/2, textW - highlightW + edgeSoftness, lineHeight);
       ctx.clip();
       drawStyledText(ctx, txt, 0, y, { fillStyle });
       ctx.restore();
@@ -1977,29 +4734,41 @@
   }
   function computeLyricTransform(line, time, progress) {
     const intensity = state.style.animIntensity;
-    const durIn = 0.4, durOut = 0.4;
-    const total = line.end - line.start;
+    const durIn = 0.5, durOut = 0.5;
     const tIn = clamp((time - line.start) / durIn, 0, 1);
     const tOut = clamp((line.end - time) / durOut, 0, 1);
-    const trans = { x: 0, y: 0, scale: 1, alpha: 1 };
+    const trans = { x: 0, y: 0, scale: 1, alpha: 1, rotation: 0 };
     const ease = t => t * (2 - t);
+    const easeOut = t => 1 - Math.pow(1 - t, 3);
+    const easeInOut = t => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
     // alpha
-    trans.alpha = Math.min(ease(tIn), ease(tOut));
+    trans.alpha = Math.min(easeOut(tIn), easeInOut(tOut));
     // position based on animIn
     const inType = state.style.animIn;
-    if (inType === 'slideUp' && tIn < 1) trans.y = (1 - ease(tIn)) * 80 * intensity;
-    if (inType === 'slideDown' && tIn < 1) trans.y = -(1 - ease(tIn)) * 80 * intensity;
+    if (inType === 'slideUp' && tIn < 1) trans.y = (1 - easeOut(tIn)) * 80 * intensity;
+    if (inType === 'slideDown' && tIn < 1) trans.y = -(1 - easeOut(tIn)) * 80 * intensity;
+    if (inType === 'slideLeft' && tIn < 1) trans.x = (1 - easeOut(tIn)) * 60 * intensity;
+    if (inType === 'slideRight' && tIn < 1) trans.x = -(1 - easeOut(tIn)) * 60 * intensity;
+    if (inType === 'blurIn' && tIn < 1) trans.alpha = easeOut(tIn);
     // animOut
     const outType = state.style.animOut;
     if (outType === 'slideUp' && tOut < 1) trans.y = -(1 - ease(tOut)) * 80 * intensity;
     if (outType === 'slideDown' && tOut < 1) trans.y = (1 - ease(tOut)) * 80 * intensity;
+    if (outType === 'slideLeft' && tOut < 1) trans.x = -(1 - ease(tOut)) * 60 * intensity;
+    if (outType === 'slideRight' && tOut < 1) trans.x = (1 - ease(tOut)) * 60 * intensity;
     // scale
-    if (inType === 'scale' && tIn < 1) trans.scale = 0.5 + 0.5 * ease(tIn);
-    if (outType === 'scale' && tOut < 1) trans.scale = 0.5 + 0.5 * ease(tOut);
+    if (inType === 'scale' && tIn < 1) trans.scale = 0.3 + 0.7 * easeOut(tIn);
+    if (outType === 'scale' && tOut < 1) trans.scale = 0.3 + 0.7 * ease(tOut);
+    if (inType === 'elastic' && tIn < 1) {
+      const e = easeOut(tIn);
+      trans.scale = 0.3 + 0.7 * e + Math.sin(e * Math.PI * 3) * 0.1 * intensity * (1 - tIn);
+    }
     // hold pulse/bounce
     const hold = state.style.animHold;
-    if (hold === 'pulse') trans.scale *= 1 + 0.05 * Math.sin(time * 6) * intensity;
-    if (hold === 'bounce') trans.y += 10 * Math.sin(time * 12) * intensity * trans.alpha;
+    const timeInLine = time - line.start;
+    if (hold === 'pulse') trans.scale *= 1 + 0.06 * Math.sin(timeInLine * 8) * intensity;
+    if (hold === 'bounce') trans.y += 8 * Math.sin(timeInLine * 10) * intensity * trans.alpha;
+    if (hold === 'shimmer') trans.scale *= 1 + 0.03 * Math.sin(timeInLine * 4) * intensity;
     return trans;
   }
 
@@ -2085,19 +4854,22 @@
       e.stopPropagation();
       e.preventDefault();
       state.selectedLyricId = lyric.id;
-      renderTimeline();
       const isHandle = e.target.classList.contains('handle');
       dragState = {
         lyric,
+        el,
         mode: isHandle ? 'resize' : 'drag',
         side: isHandle ? (e.target.classList.contains('left') ? 'left' : 'right') : null,
         startX: e.clientX,
         startStart: lyric.start,
-        startEnd: lyric.end
+        startEnd: lyric.end,
+        moved: false
       };
       document.body.style.cursor = isHandle ? 'ew-resize' : 'move';
+      el.classList.add('selected');
+      el.classList.add('dragging');
+      els.timelineContainer.style.overflow = 'hidden';
     });
-    // ensure handles capture pointer events (prevents parent block from getting confused)
     const lhs = el.querySelector('.handle.left');
     const rhs = el.querySelector('.handle.right');
     if (lhs) lhs.addEventListener('mousedown', e => e.stopPropagation());
@@ -2107,6 +4879,8 @@
     if (!dragState) return;
     const { lyric, mode, side, startX, startStart, startEnd } = dragState;
     const dx = (e.clientX - startX) / state.zoom;
+    const prevStart = lyric.start;
+    const prevEnd = lyric.end;
     if (mode === 'drag') {
       const dur = startEnd - startStart;
       lyric.start = clamp(startStart + dx, 0, Math.max(0, (state.audioDuration || 30) - dur));
@@ -2118,11 +4892,24 @@
         lyric.end = clamp(startEnd + dx, lyric.start + 0.3, state.audioDuration || 30);
       }
     }
-    renderTimeline();
-    updateLyricsInput();
+    if (lyric.start !== prevStart || lyric.end !== prevEnd) {
+      dragState.moved = true;
+      dragState.el.style.left = `${lyric.start * state.zoom}px`;
+      dragState.el.style.width = `${Math.max(20, (lyric.end - lyric.start) * state.zoom)}px`;
+      const duration = Math.max(state.audioDuration || 30, 30);
+      els.timelineTrack.style.width = `${duration * state.zoom}px`;
+    }
   });
   window.addEventListener('mouseup', () => {
-    if (dragState) { dragState = null; document.body.style.cursor = ''; }
+    if (!dragState) return;
+    if (dragState.moved) {
+      renderTimeline();
+      updateLyricsInput();
+    }
+    dragState.el.classList.remove('dragging');
+    els.timelineContainer.style.overflow = '';
+    dragState = null;
+    document.body.style.cursor = '';
   });
 
   // ===================== TRANSCRIBE =====================
@@ -2282,12 +5069,6 @@
     // mode switch
     els.modeDemo.addEventListener('click', () => setMode('demo'));
     els.modeFull.addEventListener('click', () => setMode('full'));
-    function setMode(m) {
-      state.mode = m;
-      els.modeDemo.classList.toggle('active', m === 'demo');
-      els.modeFull.classList.toggle('active', m === 'full');
-      els.apiSection.style.display = m === 'full' ? 'block' : 'none';
-    }
     // audio
     els.audioFile.addEventListener('change', e => {
       const f = e.target.files[0]; if (f) { setMode('full'); loadAudioFromFile(f); }
@@ -2331,10 +5112,30 @@
     });
     // lyrics
     els.btnParseLrc.addEventListener('click', () => {
-      state.lyrics = parseLrc(els.lyricsInput.value);
+      const text = els.lyricsInput.value.trim();
+      if (!text) { toast('请先粘贴或输入歌词'); return; }
+      const hasTimestamps = /\[\d+:\d+(?:\.\d+)?\]/.test(text);
+      if (hasTimestamps) {
+        state.lyrics = parseLrc(text);
+        if (state.lyrics.length === 0) {
+          toast('未解析到有效歌词，检查格式');
+          return;
+        }
+      } else {
+        const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+        if (!lines.length) { toast('未解析到有效歌词'); return; }
+        const dur = state.audioDuration || 30;
+        const gap = dur / lines.length;
+        state.lyrics = lines.map((t, i) => ({
+          id: uid(), text: t,
+          start: i * gap,
+          end: Math.min(dur, (i + 1) * gap)
+        }));
+      }
+      state.lyrics.sort((a,b) => a.start - b.start);
       renderTimeline();
       renderLyricsList();
-      toast('歌词已应用');
+      toast(`已解析 ${state.lyrics.length} 行歌词`);
     });
     els.btnAutoAlign.addEventListener('click', autoAlign);
     els.btnLoadDemoLyrics.addEventListener('click', () => {
@@ -2385,6 +5186,7 @@
       ['animOut', 'animOut'], ['animIntensity', 'animIntensity', 'number'],
       ['textColorMode', 'textColorMode'], ['textGradientStart', 'textGradientStart'],
       ['textGradientEnd', 'textGradientEnd'], ['lyricsDisplayMode', 'lyricsDisplayMode'],
+      ['subtitlePreset', 'subtitlePreset'],
       ['scrollSpeed', 'scrollSpeed', 'number'], ['textDirection', 'textDirection'],
       ['bgImageFit', 'bgImageFit'], ['bgImageBrightness', 'bgImageBrightness', 'number']
     ].forEach(([id, key, type]) => {
@@ -2392,6 +5194,69 @@
         state.style[key] = type === 'number' ? parseFloat(els[id].value) : els[id].value;
         if (key === 'animIntensity') state.style[key] /= 100;
       });
+    });
+    // 预置微调面板：随预设切换显示/隐藏，同时精简自定义控件
+    const onPresetChange = () => {
+      state.style.subtitlePreset = els.subtitlePreset.value;
+      updateStyleControlsVisibility();
+    };
+    els.subtitlePreset.addEventListener('change', onPresetChange);
+    els.subtitlePreset.addEventListener('input', onPresetChange);
+    // 预置微调参数
+    els.presetPosX.addEventListener('input', () => {
+      state.style.presetPosX = parseFloat(els.presetPosX.value);
+      els.presetPosXLabel.textContent = els.presetPosX.value + '%';
+    });
+    els.presetPosY.addEventListener('input', () => {
+      state.style.presetPosY = parseFloat(els.presetPosY.value);
+      els.presetPosYLabel.textContent = els.presetPosY.value + '%';
+    });
+    els.presetScale.addEventListener('input', () => {
+      state.style.presetScale = parseFloat(els.presetScale.value);
+      els.presetScaleLabel.textContent = els.presetScale.value + '%';
+    });
+    els.presetOpacity.addEventListener('input', () => {
+      state.style.presetOpacity = parseFloat(els.presetOpacity.value);
+      els.presetOpacityLabel.textContent = els.presetOpacity.value + '%';
+    });
+    els.presetColor.addEventListener('input', () => {
+      state.style.presetColor = els.presetColor.value;
+    });
+    els.presetFont.addEventListener('change', () => {
+      state.style.presetFont = els.presetFont.value;
+    });
+    els.presetCanvasSize.addEventListener('input', () => {
+      state.style.presetCanvasSize = parseFloat(els.presetCanvasSize.value);
+      const lbl = document.getElementById('presetCanvasSizeLabel');
+      if (lbl) lbl.textContent = els.presetCanvasSize.value + '%';
+    });
+    els.presetAutoFit.addEventListener('change', () => {
+      state.style.presetAutoFit = els.presetAutoFit.value === 'true';
+    });
+    els.presetDurIn.addEventListener('input', () => {
+      state.style.presetDurIn = parseFloat(els.presetDurIn.value);
+      const lbl = document.getElementById('presetDurInLabel');
+      if (lbl) lbl.textContent = els.presetDurIn.value + 's';
+    });
+    els.presetDurOut.addEventListener('input', () => {
+      state.style.presetDurOut = parseFloat(els.presetDurOut.value);
+      const lbl = document.getElementById('presetDurOutLabel');
+      if (lbl) lbl.textContent = els.presetDurOut.value + 's';
+    });
+    els.presetHold.addEventListener('change', () => {
+      state.style.presetHold = els.presetHold.value;
+    });
+    els.presetCycle.addEventListener('input', () => {
+      state.style.presetCycle = parseFloat(els.presetCycle.value);
+      const lbl = document.getElementById('presetCycleLabel');
+      if (lbl) lbl.textContent = els.presetCycle.value + 's';
+    });
+    // 主题切换
+    els.btnThemeToggle.addEventListener('click', () => {
+      const cur = document.documentElement.getAttribute('data-theme') || 'dark';
+      const next = cur === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      try { localStorage.setItem('vj-theme', next); } catch (e) {}
     });
     els.bgTheme.addEventListener('change', () => {
       const isImage = state.style.bgTheme === 'image';
@@ -2444,26 +5309,47 @@
       updateLyricsInput();
       renderTimeline();
     });
-    // Global offset
+    // Global offset - real-time preview
+    let offsetBase = null;
     els.globalOffset.addEventListener('input', () => {
-      els.globalOffsetLabel.textContent = `${els.globalOffset.value} ms`;
+      const val = parseInt(els.globalOffset.value);
+      els.globalOffsetLabel.textContent = `${val > 0 ? '+' : ''}${val} ms`;
+      if (!state.lyrics.length) return;
+      if (!offsetBase) {
+        offsetBase = state.lyrics.map(l => ({ id: l.id, start: l.start, end: l.end }));
+      }
+      const delta = val / 1000;
+      state.lyrics.forEach(l => {
+        const base = offsetBase.find(b => b.id === l.id);
+        if (base) {
+          l.start = Math.max(0, base.start + delta);
+          l.end = Math.max(l.start + 0.1, base.end + delta);
+        }
+      });
+      state.lyrics.sort((a,b) => a.start - b.start);
+      renderTimeline();
+      updateLyricsInput();
     });
     els.btnApplyGlobalOffset.addEventListener('click', () => {
-      const delta = parseInt(els.globalOffset.value) / 1000; // seconds
-      applyGlobalLyricOffset(delta);
-      toast(`已应用偏移：${delta > 0 ? '+' : ''}${delta.toFixed(2)}s`);
+      offsetBase = null;
+      const val = parseInt(els.globalOffset.value);
+      toast(`偏移已确认：${val > 0 ? '+' : ''}${(val/1000).toFixed(2)}s`);
     });
     els.btnResetGlobalOffset.addEventListener('click', () => {
-      // Re-parse the existing lyrics to revert offset
-      // Since offset is cumulative, here we zero the slider and re-apply original lyrics if available
       els.globalOffset.value = 0;
       els.globalOffsetLabel.textContent = '0 ms';
-      // Load current lyrics input text back to re-parse as-is
-      if (els.lyricsInput.value.trim()) {
-        loadLyricsFromText(els.lyricsInput.value);
-        toast('已重置歌词时间');
+      if (offsetBase) {
+        state.lyrics.forEach(l => {
+          const base = offsetBase.find(b => b.id === l.id);
+          if (base) { l.start = base.start; l.end = base.end; }
+        });
+        state.lyrics.sort((a,b) => a.start - b.start);
+        offsetBase = null;
+        renderTimeline();
+        updateLyricsInput();
+        toast('已重置偏移');
       } else {
-        toast('歌词文本为空，无法重置');
+        toast('当前无偏移可重置');
       }
     });
     // Online lyrics
@@ -2479,6 +5365,61 @@
     els.btnClearOnlineLyrics.addEventListener('click', () => {
       els.onlineLyricsText.value = '';
       els.onlineUrl.value = '';
+    });
+    els.btnFetchUrl.addEventListener('click', async () => {
+      const url = els.onlineUrl.value.trim();
+      if (!url) { toast('请粘贴歌曲链接'); return; }
+      els.fetchStatus.style.display = 'block';
+      els.fetchStatus.textContent = '正在获取歌词...';
+      els.btnFetchUrl.disabled = true;
+      try {
+        const lrcText = await fetchLyricsFromUrl(url);
+        if (lrcText) {
+          els.onlineLyricsText.value = lrcText;
+          els.fetchStatus.textContent = `获取成功！已填入 ${lrcText.split(/\r?\n/).length} 行歌词，点击"解析并使用"应用`;
+          els.fetchStatus.style.color = 'var(--accent)';
+        } else {
+          els.fetchStatus.textContent = '自动获取失败，请手动复制歌词文本粘贴';
+          els.fetchStatus.style.color = 'var(--accent-3)';
+        }
+      } catch (err) {
+        els.fetchStatus.textContent = '获取失败：' + err.message;
+        els.fetchStatus.style.color = 'var(--accent-3)';
+      } finally {
+        els.btnFetchUrl.disabled = false;
+      }
+    });
+    // Keyboard shortcuts for nudging selected lyric
+    window.addEventListener('keydown', e => {
+      if (!state.selectedLyricId) return;
+      const target = e.target;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT')) return;
+      const lyric = state.lyrics.find(l => l.id === state.selectedLyricId);
+      if (!lyric) return;
+      const step = e.shiftKey ? 0.1 : (e.altKey ? 0.5 : 0.05);
+      const dur = lyric.end - lyric.start;
+      if (e.key === 'ArrowLeft') {
+        lyric.start = Math.max(0, lyric.start - step);
+        lyric.end = lyric.start + dur;
+        e.preventDefault();
+      } else if (e.key === 'ArrowRight') {
+        const maxStart = (state.audioDuration || 30) - dur;
+        lyric.start = Math.min(maxStart, lyric.start + step);
+        lyric.end = lyric.start + dur;
+        e.preventDefault();
+      } else if (e.key === 'ArrowUp') {
+        lyric.start = Math.max(0, lyric.start - step * 0.5);
+        lyric.end = Math.max(lyric.start + 0.1, lyric.end - step * 0.5);
+        e.preventDefault();
+      } else if (e.key === 'ArrowDown') {
+        lyric.end = Math.min((state.audioDuration || 30), lyric.end + step * 0.5);
+        lyric.start = Math.max(0, lyric.start + step * 0.5);
+        e.preventDefault();
+      } else {
+        return;
+      }
+      renderTimeline();
+      updateLyricsInput();
     });
     // export
     els.btnExport.addEventListener('click', () => {
@@ -2520,6 +5461,32 @@
     els.animOut.value = state.style.animOut;
     els.animIntensity.value = state.style.animIntensity * 100;
     els.lyricsDisplayMode.value = state.style.lyricsDisplayMode;
+    els.subtitlePreset.value = state.style.subtitlePreset;
+    updateStyleControlsVisibility();
+    els.presetPosX.value = state.style.presetPosX;
+    els.presetPosXLabel.textContent = state.style.presetPosX + '%';
+    els.presetPosY.value = state.style.presetPosY;
+    els.presetPosYLabel.textContent = state.style.presetPosY + '%';
+    els.presetScale.value = state.style.presetScale;
+    els.presetScaleLabel.textContent = state.style.presetScale + '%';
+    els.presetOpacity.value = state.style.presetOpacity;
+    els.presetOpacityLabel.textContent = state.style.presetOpacity + '%';
+    els.presetColor.value = state.style.presetColor;
+    els.presetFont.value = state.style.presetFont;
+    els.presetCanvasSize.value = state.style.presetCanvasSize;
+    const csLabel = document.getElementById('presetCanvasSizeLabel');
+    if (csLabel) csLabel.textContent = state.style.presetCanvasSize + '%';
+    els.presetAutoFit.value = String(state.style.presetAutoFit);
+    els.presetDurIn.value = state.style.presetDurIn;
+    const diLabel = document.getElementById('presetDurInLabel');
+    if (diLabel) diLabel.textContent = state.style.presetDurIn + 's';
+    els.presetDurOut.value = state.style.presetDurOut;
+    const doLabel = document.getElementById('presetDurOutLabel');
+    if (doLabel) doLabel.textContent = state.style.presetDurOut + 's';
+    els.presetHold.value = state.style.presetHold;
+    els.presetCycle.value = state.style.presetCycle;
+    const cyLabel = document.getElementById('presetCycleLabel');
+    if (cyLabel) cyLabel.textContent = state.style.presetCycle + 's';
     els.scrollSpeed.value = state.style.scrollSpeed;
     els.textDirection.value = state.style.textDirection;
     els.bgImageFit.value = state.style.bgImageFit;
@@ -2528,9 +5495,17 @@
 
   // ===================== INIT =====================
   function init() {
+    // 应用保存的主题（默认黑色）
+    try {
+      const savedTheme = localStorage.getItem('vj-theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    } catch (e) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
     resizeCanvas();
     bindEvents();
     applyStyleToControls();
+    preloadBgResources();
     // initial demo
     state.lyrics = JSON.parse(JSON.stringify(DEMO_LYRICS));
     updateLyricsInput();
